@@ -23,7 +23,7 @@ export const RPC_URL =
   process.env.NEXT_PUBLIC_RPC_URL ??
   "https://api.infra.testnet.somnia.network";
 
-export const CHAIN_ID = 50312;
+export const CHAIN_ID = Number(process.env.SOMNIA_CHAIN_ID ?? 50312);
 
 export const BLOCK_EXPLORER = "https://somnia-testnet.blockscout.com";
 export const AGENT_RECEIPTS_URL = "https://agents.testnet.somnia.network";

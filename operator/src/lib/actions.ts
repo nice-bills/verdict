@@ -158,43 +158,43 @@ export async function actionStatus(params: { market: Address }): Promise<JsonRes
   const m = params.market;
 
   const [question, state, outcome, reasoning, totalYes, totalNo, deadline, deposit] =
-    await publicClient.multicall({
-      contracts: [
-        { address: m, abi: marketAbi, functionName: "question" },
-        { address: m, abi: marketAbi, functionName: "state" },
-        { address: m, abi: marketAbi, functionName: "outcome" },
-        { address: m, abi: marketAbi, functionName: "agentReasoning" },
-        { address: m, abi: marketAbi, functionName: "totalYesStake" },
-        { address: m, abi: marketAbi, functionName: "totalNoStake" },
-        { address: m, abi: marketAbi, functionName: "deadline" },
-        { address: m, abi: marketAbi, functionName: "requiredResolveDeposit" },
-      ],
-    });
+    await Promise.all([
+      publicClient.readContract({ address: m, abi: marketAbi, functionName: "question" }),
+      publicClient.readContract({ address: m, abi: marketAbi, functionName: "state" }),
+      publicClient.readContract({ address: m, abi: marketAbi, functionName: "outcome" }),
+      publicClient.readContract({ address: m, abi: marketAbi, functionName: "agentReasoning" }),
+      publicClient.readContract({ address: m, abi: marketAbi, functionName: "totalYesStake" }),
+      publicClient.readContract({ address: m, abi: marketAbi, functionName: "totalNoStake" }),
+      publicClient.readContract({ address: m, abi: marketAbi, functionName: "deadline" }),
+      publicClient.readContract({
+        address: m,
+        abi: marketAbi,
+        functionName: "requiredResolveDeposit",
+      }),
+    ]);
 
-  const stateNum = Number(state.result);
-  const outcomeNum = Number(outcome.result);
+  const stateNum = Number(state);
+  const outcomeNum = Number(outcome);
   const now = Math.floor(Date.now() / 1000);
-  const deadlineNum = Number(deadline.result);
+  const deadlineNum = Number(deadline);
 
   return {
     ok: true,
     market: {
       address: m,
-      question: question.result as string,
+      question: question as string,
       state: STATE_LABELS[stateNum] ?? stateNum,
       stateRaw: stateNum,
       outcome: OUTCOME_LABELS[outcomeNum] ?? outcomeNum,
       outcomeRaw: outcomeNum,
-      agentReasoning: (reasoning.result as string) || null,
-      totalYesStakeStt: formatEther(totalYes.result as bigint),
-      totalNoStakeStt: formatEther(totalNo.result as bigint),
-      totalPoolStt: formatEther(
-        (totalYes.result as bigint) + (totalNo.result as bigint)
-      ),
+      agentReasoning: (reasoning as string) || null,
+      totalYesStakeStt: formatEther(totalYes as bigint),
+      totalNoStakeStt: formatEther(totalNo as bigint),
+      totalPoolStt: formatEther((totalYes as bigint) + (totalNo as bigint)),
       deadline: deadlineNum,
       deadlineIso: new Date(deadlineNum * 1000).toISOString(),
       pastDeadline: now >= deadlineNum,
-      requiredResolveDepositStt: formatEther(deposit.result as bigint),
+      requiredResolveDepositStt: formatEther(deposit as bigint),
       explorer: `${BLOCK_EXPLORER}/address/${m}`,
     },
   };

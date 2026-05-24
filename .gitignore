@@ -6,6 +6,8 @@ broadcast/
 # Env
 .env
 .env.local
+.env.generated
+WALLET.generated.txt
 
 # Node
 app/node_modules/
@@ -15,3 +17,4 @@ operator/dist/
 
 # OS
 .DS_Store
+.cursor/mcp.json

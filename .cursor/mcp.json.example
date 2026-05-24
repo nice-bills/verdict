@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "verdict": {
+      "command": "node",
+      "args": ["/absolute/path/to/verdict/operator/dist/mcp-server.js"],
+      "env": {
+        "SOMNIA_RPC_URL": "https://api.infra.testnet.somnia.network",
+        "PRIVATE_KEY": "0x...",
+        "FACTORY_ADDRESS": "0x..."
+      }
+    }
+  }
+}

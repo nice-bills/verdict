@@ -1,0 +1,9 @@
+{
+  "chainId": 50312,
+  "platform": "0x037Bb9C718F3f7fe5eCBDB0b600D607b52706776",
+  "parseWebsiteAgentId": "12875401142070969085",
+  "factory": "",
+  "rpcUrl": "https://api.infra.testnet.somnia.network",
+  "explorer": "https://somnia-testnet.blockscout.com",
+  "agentsExplorer": "https://agents.testnet.somnia.network"
+}

@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Verdict — Visual System Guide</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --void: #030306;
+      --ink: #0a0a12;
+      --glass: rgba(255,255,255,0.04);
+      --line: rgba(255,255,255,0.08);
+      --yes: #00ff9d;
+      --yes-glow: rgba(0,255,157,0.45);
+      --no: #ff3d6a;
+      --no-glow: rgba(255,61,106,0.45);
+      --agent: #a78bfa;
+      --agent-glow: rgba(167,139,250,0.5);
+      --gold: #ffc14d;
+      --text: #f4f4f8;
+      --dim: #8b8b9e;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--void);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ─── Ambient canvas ─── */
+    #ambient {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .mesh {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 90% 60% at 15% -10%, rgba(0,255,157,0.14), transparent 55%),
+        radial-gradient(ellipse 70% 50% at 95% 20%, rgba(167,139,250,0.18), transparent 50%),
+        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(255,61,106,0.1), transparent 45%),
+        var(--void);
+    }
+
+    /* ─── Layout ─── */
+    .shell {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.25rem 6rem;
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      min-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 4rem 0 3rem;
+      position: relative;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: "Syne", sans-serif;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--yes);
+      margin-bottom: 1.5rem;
+      animation: pulse-tag 3s ease infinite;
+    }
+
+    .hero-tag::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--yes);
+      box-shadow: 0 0 20px var(--yes-glow);
+    }
+
+    @keyframes pulse-tag {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.65; }
+    }
+
+    .hero h1 {
+      font-family: "Syne", sans-serif;
+      font-size: clamp(3.2rem, 12vw, 7rem);
+      font-weight: 800;
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+      background: linear-gradient(135deg, #fff 0%, #fff 40%, var(--yes) 70%, var(--agent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      margin-top: 1.5rem;
+      font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+      color: var(--dim);
+      max-width: 32rem;
+      line-height: 1.5;
+    }
+
+    .hero-visual {
+      margin-top: 3rem;
+      position: relative;
+      height: 280px;
+    }
+
+    /* Floating market cards in hero */
+    .hero-orbit {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .orbit-center {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #1a1a2e, #0d0d14);
+      border: 2px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 0 60px var(--agent-glow),
+        inset 0 0 40px rgba(167,139,250,0.08);
+      z-index: 3;
+      animation: float-center 5s ease-in-out infinite;
+    }
+
+    @keyframes float-center {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    .orbit-center span {
+      font-family: "Syne", sans-serif;
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+
+    .orbit-center small {
+      font-size: 0.6rem;
+      color: var(--agent);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-top: 0.25rem;
+    }
+
+    .orbit-card {
+      position: absolute;
+      width: 200px;
+      padding: 1rem 1.1rem;
+      border-radius: 16px;
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--line);
+      font-size: 0.8rem;
+      animation: orbit-drift 7s ease-in-out infinite;
+    }
+
+    .orbit-card.yes {
+      top: 10%;
+      left: 5%;
+      background: linear-gradient(135deg, rgba(0,255,157,0.12), rgba(0,0,0,0.6));
+      border-color: rgba(0,255,157,0.3);
+      box-shadow: 0 20px 50px rgba(0,255,157,0.15);
+      animation-delay: 0s;
+    }
+
+    .orbit-card.no {
+      top: 15%;
+      right: 5%;
+      background: linear-gradient(135deg, rgba(255,61,106,0.12), rgba(0,0,0,0.6));
+      border-color: rgba(255,61,106,0.3);
+      box-shadow: 0 20px 50px rgba(255,61,106,0.15);
+      animation-delay: -2s;
+    }
+
+    .orbit-card.agent {
+      bottom: 5%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 260px;
+      background: linear-gradient(135deg, rgba(167,139,250,0.15), rgba(0,0,0,0.6));
+      border-color: rgba(167,139,250,0.35);
+      box-shadow: 0 20px 50px rgba(167,139,250,0.2);
+      animation-delay: -4s;
+    }
+
+    @keyframes orbit-drift {
+      0%, 100% { transform: translateY(0) translateX(var(--tx, 0)); }
+      50% { transform: translateY(-16px) translateX(var(--tx, 0)); }
+    }
+
+    .orbit-card .label {
+      font-family: "Syne", sans-serif;
+      font-weight: 700;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
+    }
+
+    .orbit-card.yes .label { color: var(--yes); }
+    .orbit-card.no .label { color: var(--no); }
+    .orbit-card.agent .label { color: var(--agent); }
+
+  .orbit-card .amount {
+      font-family: "Syne", sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+    }
+
+    .scroll-hint {
+      margin-top: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--dim);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .scroll-hint .chevron {
+      width: 24px;
+      height: 24px;
+      border-right: 2px solid var(--dim);
+      border-bottom: 2px solid var(--dim);
+      transform: rotate(45deg);
+      animation: bounce-chevron 2s ease infinite;
+    }
+
+    @keyframes bounce-chevron {
+      0%, 100% { transform: rotate(45deg) translateY(0); opacity: 0.4; }
+      50% { transform: rotate(45deg) translateY(8px); opacity: 1; }
+    }
+
+    /* ─── Section headers ─── */
+    .section {
+      margin-top: 5rem;
+      scroll-margin-top: 2rem;
+    }
+
+    .section-label {
+      font-family: "Syne", sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--agent);
+      margin-bottom: 0.75rem;
+    }
+
+    .section h2 {
+      font-family: "Syne", sans-serif;
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 2rem;
+    }
+
+    /* ─── THE PROBLEM (split visual) ─── */
+    .problem-stage {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      min-height: 420px;
+    }
+
+    @media (max-width: 768px) {
+      .problem-stage { grid-template-columns: 1fr; }
+    }
+
+    .problem-panel {
+      border-radius: 24px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .problem-panel.old {
+      background: linear-gradient(160deg, #1a1518 0%, #0d0d10 100%);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .problem-panel.new {
+      background: linear-gradient(160deg, #0f1a14 0%, #0a0a12 50%, #12101f 100%);
+      border: 1px solid rgba(0,255,157,0.2);
+      box-shadow: 0 0 80px rgba(0,255,157,0.08);
+    }
+
+    .problem-panel h3 {
+      font-family: "Syne", sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      z-index: 2;
+    }
+
+    .problem-panel.old h3 { color: #6b6b7a; }
+    .problem-panel.new h3 { color: var(--yes); }
+
+    /* Old: tangled committee viz */
+    .committee-viz {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .committee-node {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #2a2a32;
+      border: 2px solid #444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      opacity: 0.7;
+    }
+
+    .committee-lines {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .committee-lines line {
+      stroke: #444;
+      stroke-width: 1;
+      stroke-dasharray: 4 4;
+      animation: dash 20s linear infinite;
+    }
+
+    @keyframes dash { to { stroke-dashoffset: -100; } }
+
+    .committee-q {
+      position: absolute;
+      font-family: "Syne", sans-serif;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #3a3a48;
+      z-index: 1;
+    }
+
+    /* New: agent pipeline viz */
+    .pipeline-viz {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      justify-content: center;
+    }
+
+    .pipe-step {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      background: rgba(0,0,0,0.35);
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      transform: translateX(0);
+      opacity: 0;
+      animation: slide-in 0.6s ease forwards;
+    }
+
+    .pipe-step:nth-child(1) { animation-delay: 0.1s; }
+    .pipe-step:nth-child(2) { animation-delay: 0.25s; }
+    .pipe-step:nth-child(3) { animation-delay: 0.4s; }
+    .pipe-step:nth-child(4) { animation-delay: 0.55s; }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateX(24px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .pipe-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .pipe-step:nth-child(1) .pipe-icon { background: rgba(0,255,157,0.15); }
+    .pipe-step:nth-child(2) .pipe-icon { background: rgba(167,139,250,0.2); }
+    .pipe-step:nth-child(3) .pipe-icon { background: rgba(255,193,77,0.15); }
+    .pipe-step:nth-child(4) .pipe-icon { background: rgba(0,255,157,0.2); }
+
+    .pipe-step strong {
+      font-family: "Syne", sans-serif;
+      font-size: 0.85rem;
+      display: block;
+    }
+
+    .pipe-step span { font-size: 0.75rem; color: var(--dim); }
+
+    /* ─── INTERACTIVE JOURNEY ─── */
+    .journey {
+      background: var(--ink);
+      border-radius: 28px;
+      border: 1px solid var(--line);
+      padding: 2rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .journey::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--yes), var(--agent), var(--no));
+    }
+
+    .journey-nav {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .journey-btn {
+      font-family: "Syne", sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.6rem 1.1rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--dim);
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    .journey-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    .journey-btn.active {
+      color: var(--void);
+      background: var(--yes);
+      border-color: var(--yes);
+      box-shadow: 0 0 30px var(--yes-glow);
+    }
+
+    .journey-stage {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: center;
+      min-height: 340px;
+    }
+
+    @media (max-width: 800px) {
+      .journey-stage { grid-template-columns: 1fr; }
+    }
+
+    .journey-copy h3 {
+      font-family: "Syne", sans-serif;
+      font-size: 1.75rem;
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+      line-height: 1.1;
+    }
+
+    .journey-copy p {
+      color: var(--dim);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .journey-copy .fn {
+      font-family: "JetBrains Mono", "DM Mono", monospace;
+      font-size: 0.8rem;
+      color: var(--yes);
+      background: rgba(0,255,157,0.08);
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      border-left: 3px solid var(--yes);
+      display: inline-block;
+    }
+
+    /* Mock UI screens */
+    .mock-ui {
+      background: #0e0e14;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+      overflow: hidden;
+      transform: perspective(800px) rotateY(-4deg) rotateX(2deg);
+      transition: transform 0.4s ease;
+    }
+
+    .mock-ui:hover {
+      transform: perspective(800px) rotateY(0) rotateX(0);
+    }
+
+    .mock-chrome {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.65rem 1rem;
+      background: #16161e;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .mock-dot.r { background: #ff5f57; }
+    .mock-dot.y { background: #febc2e; }
+    .mock-dot.g { background: #28c840; }
+
+    .mock-body { padding: 1.25rem; }
+
+    .mock-q {
+      font-family: "Syne", sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+      line-height: 1.3;
+    }
+
+    .mock-pools {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .mock-pool {
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .mock-pool.yes-p {
+      background: linear-gradient(180deg, rgba(0,255,157,0.2), rgba(0,255,157,0.05));
+      border: 1px solid rgba(0,255,157,0.35);
+    }
+
+    .mock-pool.no-p {
+      background: linear-gradient(180deg, rgba(255,61,106,0.2), rgba(255,61,106,0.05));
+      border: 1px solid rgba(255,61,106,0.35);
+    }
+
+    .mock-pool .tag {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    .mock-pool.yes-p .tag { color: var(--yes); }
+    .mock-pool.no-p .tag { color: var(--no); }
+
+    .mock-pool .val {
+      font-family: "Syne", sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-top: 0.25rem;
+    }
+
+    .mock-btn {
+      width: 100%;
+      padding: 0.7rem;
+      border-radius: 10px;
+      border: none;
+      font-family: "Syne", sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: default;
+      margin-top: 0.5rem;
+    }
+
+    .mock-btn.resolve {
+      background: linear-gradient(135deg, #7c3aed, #a78bfa);
+      color: white;
+      animation: glow-btn 2s ease infinite;
+    }
+
+    @keyframes glow-btn {
+      0%, 100% { box-shadow: 0 0 20px rgba(167,139,250,0.3); }
+      50% { box-shadow: 0 0 40px rgba(167,139,250,0.6); }
+    }
+
+    .mock-btn.claim {
+      background: linear-gradient(135deg, #059669, var(--yes));
+      color: #030306;
+    }
+
+    .mock-agent-bar {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: rgba(167,139,250,0.1);
+      border-radius: 10px;
+      border: 1px dashed rgba(167,139,250,0.4);
+      font-size: 0.72rem;
+      color: #c4b5fd;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .mock-agent-bar .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(167,139,250,0.3);
+      border-top-color: var(--agent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .mock-verdict {
+      text-align: center;
+      padding: 1.5rem;
+    }
+
+    .mock-verdict .big {
+      font-family: "Syne", sans-serif;
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1;
+      animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes pop-in {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .mock-verdict.yes-win .big { color: var(--yes); text-shadow: 0 0 60px var(--yes-glow); }
+    .mock-verdict.no-win .big { color: var(--no); text-shadow: 0 0 60px var(--no-glow); }
+
+    /* ─── ANIMATED FLOW DIAGRAM ─── */
+    .flow-canvas-wrap {
+      border-radius: 28px;
+      background: var(--ink);
+      border: 1px solid var(--line);
+      padding: 1.5rem;
+      margin-top: 1rem;
+    }
+
+  .flow-canvas-wrap svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .flow-packet {
+      filter: drop-shadow(0 0 8px var(--yes-glow));
+    }
+
+    /* ─── PAYOUT VISUALIZER ─── */
+    .payout-lab {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 2rem;
+      background: linear-gradient(135deg, #0f0f18, #0a1210);
+      border-radius: 28px;
+      border: 1px solid var(--line);
+      padding: 2rem;
+      align-items: stretch;
+    }
+
+    @media (max-width: 800px) {
+      .payout-lab { grid-template-columns: 1fr; }
+    }
+
+    .payout-controls label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 0.5rem;
+      margin-top: 1.25rem;
+    }
+
+    .payout-controls label:first-child { margin-top: 0; }
+
+    .payout-controls input[type="range"] {
+      width: 100%;
+      height: 6px;
+      -webkit-appearance: none;
+      background: #2a2a36;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .payout-controls input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--yes);
+      box-shadow: 0 0 16px var(--yes-glow);
+      cursor: pointer;
+    }
+
+    .outcome-pills {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .outcome-pill {
+      flex: 1;
+      min-width: 70px;
+      padding: 0.6rem;
+      border-radius: 10px;
+      border: 2px solid var(--line);
+      background: transparent;
+      color: var(--dim);
+      font-family: "Syne", sans-serif;
+      font-weight: 700;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .outcome-pill.yes.active {
+      border-color: var(--yes);
+      background: rgba(0,255,157,0.15);
+      color: var(--yes);
+      box-shadow: 0 0 24px var(--yes-glow);
+    }
+
+    .outcome-pill.no.active {
+      border-color: var(--no);
+      background: rgba(255,61,106,0.15);
+      color: var(--no);
+      box-shadow: 0 0 24px var(--no-glow);
+    }
+
+    .outcome-pill.inv.active {
+      border-color: var(--gold);
+      background: rgba(255,193,77,0.12);
+      color: var(--gold);
+    }
+
+    .payout-viz {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1.5rem;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .bar-label {
+      width: 64px;
+      font-family: "Syne", sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .bar-label.y { color: var(--yes); }
+    .bar-label.n { color: var(--no); }
+
+    .bar-track {
+      flex: 1;
+      height: 48px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 12px;
+      transition: width 0.6s cubic-bezier(0.34, 1.2, 0.64, 1);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 0.75rem;
+      font-family: "Syne", sans-serif;
+      font-weight: 800;
+      font-size: 0.85rem;
+    }
+
+    .bar-fill.yes-fill {
+      background: linear-gradient(90deg, rgba(0,255,157,0.3), var(--yes));
+      color: #030306;
+    }
+
+    .bar-fill.no-fill {
+      background: linear-gradient(90deg, rgba(255,61,106,0.3), var(--no));
+      color: white;
+    }
+
+    .payout-result-card {
+      text-align: center;
+      padding: 1.5rem;
+      border-radius: 16px;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--line);
+    }
+
+    .payout-result-card .headline {
+      font-family: "Syne", sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* ─── Architecture infographic ─── */
+    .arch-infographic {
+      position: relative;
+      padding: 3rem 1rem;
+      min-height: 480px;
+    }
+
+    .arch-layer {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    .arch-box {
+      padding: 1.25rem 1.75rem;
+      border-radius: 16px;
+      text-align: center;
+      min-width: 160px;
+      position: relative;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .arch-box:hover {
+      transform: translateY(-6px) scale(1.02);
+    }
+
+    .arch-box.factory {
+      background: linear-gradient(145deg, #1e3a2f, #0d1a14);
+      border: 2px solid var(--yes);
+      box-shadow: 0 20px 50px rgba(0,255,157,0.15);
+    }
+
+    .arch-box.market {
+      background: linear-gradient(145deg, #1a1a28, #0e0e16);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .arch-box.platform {
+      background: linear-gradient(145deg, #2e1065, #1a0a30);
+      border: 2px solid var(--agent);
+      box-shadow: 0 20px 50px var(--agent-glow);
+      min-width: 280px;
+    }
+
+    .arch-box.agent {
+      background: linear-gradient(145deg, #422006, #1a1008);
+      border: 2px solid var(--gold);
+      box-shadow: 0 20px 40px rgba(255,193,77,0.2);
+    }
+
+    .arch-box .title {
+      font-family: "Syne", sans-serif;
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+
+    .arch-box .sub {
+      font-size: 0.7rem;
+      color: var(--dim);
+      margin-top: 0.35rem;
+      font-family: "DM Mono", monospace;
+    }
+
+    .arch-connectors {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ─── Video storyboard strip ─── */
+    .storyboard {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    @media (max-width: 900px) {
+      .storyboard { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .story-frame {
+      aspect-ratio: 9/12;
+      border-radius: 16px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .story-frame::before {
+      content: attr(data-time);
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+      font-family: "Syne", sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: rgba(0,0,0,0.6);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .story-frame:nth-child(1) {
+      background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.9)),
+        linear-gradient(135deg, #1a1a2e, #2d1b4e);
+    }
+    .story-frame:nth-child(2) {
+      background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.9)),
+        linear-gradient(135deg, #0d2818, #1a3a2a);
+    }
+    .story-frame:nth-child(3) {
+      background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.9)),
+        linear-gradient(135deg, #1a1520, #2e1065);
+    }
+    .story-frame:nth-child(4) {
+      background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.9)),
+        linear-gradient(135deg, #2e1065, #4c1d95);
+    }
+    .story-frame:nth-child(5) {
+      background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.9)),
+        linear-gradient(135deg, #064e3b, #0d3320);
+    }
+
+    .story-frame .emoji { font-size: 2rem; margin-bottom: auto; padding-top: 2rem; }
+    .story-frame strong {
+      font-family: "Syne", sans-serif;
+      font-size: 0.8rem;
+      line-height: 1.2;
+    }
+
+    .story-frame span { font-size: 0.65rem; color: var(--dim); margin-top: 0.25rem; }
+
+    footer.page-foot {
+      margin-top: 5rem;
+      text-align: center;
+      color: var(--dim);
+      font-size: 0.8rem;
+    }
+
+    footer.page-foot a { color: var(--yes); }
+  </style>
+</head>
+<body>
+  <canvas id="ambient" aria-hidden="true"></canvas>
+  <div class="mesh" aria-hidden="true"></div>
+
+  <div class="shell">
+    <!-- HERO -->
+    <header class="hero">
+      <div class="hero-tag">Somnia Agentathon · Encode Club</div>
+      <h1>VERDICT</h1>
+      <p class="hero-sub">
+        Prediction markets where <em style="color:var(--yes);font-style:normal">the resolver is an on-chain agent</em>—not your uncle's multisig.
+      </p>
+
+      <div class="hero-visual">
+        <div class="hero-orbit">
+          <div class="orbit-card yes" style="--tx:0">
+            <div class="label">YES pool</div>
+            <div class="amount" id="heroYes">0.01</div>
+            <div style="font-size:0.7rem;color:var(--dim);margin-top:0.25rem">STT staked</div>
+          </div>
+          <div class="orbit-center">
+            <span>?</span>
+            <small>Who decides</small>
+          </div>
+          <div class="orbit-card no" style="--tx:0">
+            <div class="label">NO pool</div>
+            <div class="amount" id="heroNo">0.02</div>
+            <div style="font-size:0.7rem;color:var(--dim);margin-top:0.25rem">STT staked</div>
+          </div>
+          <div class="orbit-card agent" style="--tx:-50%">
+            <div class="label">Somnia LLM Parse Website</div>
+            <div style="font-size:0.85rem;margin-top:0.35rem">Reads URL → YES / NO / INVALID → Majority consensus → callback</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scroll-hint">
+        <span>Scroll the system</span>
+        <div class="chevron"></div>
+      </div>
+    </header>
+
+    <!-- PROBLEM -->
+    <section class="section" id="problem">
+      <div class="section-label">01 · The gap</div>
+      <h2>Markets fail when resolution is a black box</h2>
+      <div class="problem-stage">
+        <div class="problem-panel old">
+          <h3>Today</h3>
+          <div class="committee-viz">
+            <svg class="committee-lines" viewBox="0 0 300 200">
+              <line x1="80" y1="50" x2="150" y2="100"/>
+              <line x1="220" y1="50" x2="150" y2="100"/>
+              <line x1="50" y1="150" x2="150" y2="100"/>
+              <line x1="250" y1="150" x2="150" y2="100"/>
+              <line x1="80" y1="50" x2="250" y2="150"/>
+              <line x1="220" y1="50" x2="50" y2="150"/>
+            </svg>
+            <div class="committee-node" style="top:12%;left:18%">👤</div>
+            <div class="committee-node" style="top:12%;right:18%">👤</div>
+            <div class="committee-node" style="bottom:18%;left:8%">👤</div>
+            <div class="committee-node" style="bottom:18%;right:8%">👤</div>
+            <div class="committee-q">?</div>
+          </div>
+          <p style="font-size:0.85rem;color:#6b6b7a;margin-top:auto">Humans, multisig, opaque bots. No receipt. No URL proof.</p>
+        </div>
+        <div class="problem-panel new">
+          <h3>Verdict</h3>
+          <div class="pipeline-viz">
+            <div class="pipe-step">
+              <div class="pipe-icon">📄</div>
+              <div><strong>Your URL + rule</strong><span>Plain English resolve prompt</span></div>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-icon">🤖</div>
+              <div><strong>Agent reads page</strong><span>LLM Parse Website on Somnia</span></div>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-icon">⚖️</div>
+              <div><strong>Validator consensus</strong><span>Majority → YES / NO / INVALID</span></div>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-icon">💸</div>
+              <div><strong>Contract pays out</strong><span>Pro-rata winners or full refund</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTERACTIVE JOURNEY -->
+    <section class="section" id="journey">
+      <div class="section-label">02 · Live walkthrough</div>
+      <h2>Click through the lifecycle</h2>
+      <div class="journey">
+        <div class="journey-nav" role="tablist">
+          <button class="journey-btn active" data-step="0">① Create</button>
+          <button class="journey-btn" data-step="1">② Stake</button>
+          <button class="journey-btn" data-step="2">③ Resolve</button>
+          <button class="journey-btn" data-step="3">④ Agent</button>
+          <button class="journey-btn" data-step="4">⑤ Claim</button>
+        </div>
+        <div class="journey-stage" id="journeyStage">
+          <!-- filled by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ANIMATED FLOW -->
+    <section class="section" id="flow">
+      <div class="section-label">03 · Data flow</div>
+      <h2>Money & messages across the stack</h2>
+      <div class="flow-canvas-wrap">
+        <svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="gYes" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#00ff9d" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#00ff9d"/>
+            </linearGradient>
+            <linearGradient id="gAgent" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#a78bfa" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#a78bfa"/>
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- Lanes -->
+          <rect x="20" y="40" width="120" height="240" rx="12" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.06)"/>
+          <text x="80" y="68" fill="#8b8b9e" font-family="Syne,sans-serif" font-size="11" font-weight="700" text-anchor="middle">USERS</text>
+          <rect x="200" y="40" width="160" height="240" rx="12" fill="rgba(0,255,157,0.06)" stroke="rgba(0,255,157,0.2)"/>
+          <text x="280" y="68" fill="#00ff9d" font-family="Syne,sans-serif" font-size="11" font-weight="700" text-anchor="middle">VERDICT MARKET</text>
+          <rect x="420" y="40" width="160" height="240" rx="12" fill="rgba(167,139,250,0.08)" stroke="rgba(167,139,250,0.25)"/>
+          <text x="500" y="68" fill="#c4b5fd" font-family="Syne,sans-serif" font-size="11" font-weight="700" text-anchor="middle">SOMNIA PLATFORM</text>
+          <rect x="640" y="40" width="240" height="240" rx="12" fill="rgba(255,193,77,0.06)" stroke="rgba(255,193,77,0.2)"/>
+          <text x="760" y="68" fill="#ffc14d" font-family="Syne,sans-serif" font-size="11" font-weight="700" text-anchor="middle">VALIDATORS + LLM</text>
+          <!-- Paths -->
+          <path id="pathStake" d="M 140 100 L 200 100" fill="none" stroke="url(#gYes)" stroke-width="2" opacity="0.5"/>
+          <path id="pathResolve" d="M 140 140 L 200 140" fill="none" stroke="url(#gYes)" stroke-width="2" opacity="0.5"/>
+          <path id="pathRequest" d="M 360 160 L 420 160" fill="none" stroke="url(#gAgent)" stroke-width="2" opacity="0.5"/>
+          <path id="pathParse" d="M 580 180 L 640 180" fill="none" stroke="#ffc14d" stroke-width="2" opacity="0.5"/>
+          <path id="pathBack" d="M 640 220 L 580 220 L 500 240 L 360 240 L 200 240 L 140 240" fill="none" stroke="url(#gAgent)" stroke-width="2" opacity="0.4"/>
+          <path id="pathClaim" d="M 140 200 L 200 200" fill="none" stroke="url(#gYes)" stroke-width="2" opacity="0.5"/>
+          <!-- Animated packets -->
+          <circle class="flow-packet" r="6" fill="#00ff9d" filter="url(#glow)">
+            <animateMotion dur="3s" repeatCount="indefinite" path="M 140 100 L 200 100"/>
+          </circle>
+          <circle r="5" fill="#a78bfa" filter="url(#glow)">
+            <animateMotion dur="4s" repeatCount="indefinite" begin="1s" path="M 360 160 L 420 160 L 580 180 L 640 180"/>
+          </circle>
+          <circle r="5" fill="#ffc14d" filter="url(#glow)">
+            <animateMotion dur="5s" repeatCount="indefinite" begin="2s" path="M 640 220 L 360 240 L 200 240 L 140 240"/>
+          </circle>
+          <circle r="5" fill="#00ff9d" filter="url(#glow)">
+            <animateMotion dur="3.5s" repeatCount="indefinite" begin="0.5s" path="M 140 200 L 200 200"/>
+          </circle>
+          <!-- Labels -->
+          <text x="170" y="95" fill="#6ee7b7" font-size="9" font-family="DM Sans,sans-serif" text-anchor="middle">stake()</text>
+          <text x="170" y="135" fill="#6ee7b7" font-size="9" font-family="DM Sans,sans-serif" text-anchor="middle">resolve()</text>
+          <text x="390" y="155" fill="#c4b5fd" font-size="9" font-family="DM Sans,sans-serif" text-anchor="middle">createRequest</text>
+          <text x="610" y="175" fill="#fde68a" font-size="9" font-family="DM Sans,sans-serif" text-anchor="middle">parse URL</text>
+          <text x="400" y="255" fill="#c4b5fd" font-size="9" font-family="DM Sans,sans-serif" text-anchor="middle">handleResponse → claim()</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ARCHITECTURE -->
+    <section class="section" id="arch">
+      <div class="section-label">04 · Architecture</div>
+      <h2>Four layers, one verdict</h2>
+      <div class="arch-infographic">
+        <svg class="arch-connectors" viewBox="0 0 900 400" preserveAspectRatio="xMidYMid meet">
+          <path d="M450 70 L450 110" stroke="#00ff9d" stroke-width="2" fill="none" opacity="0.5"/>
+          <path d="M200 130 L200 170 L450 170 L450 200" stroke="#52525b" stroke-width="1.5" fill="none"/>
+          <path d="M450 130 L450 170" stroke="#52525b" stroke-width="1.5" fill="none"/>
+          <path d="M700 130 L700 170 L450 170" stroke="#52525b" stroke-width="1.5" fill="none"/>
+          <path d="M450 250 L450 290" stroke="#a78bfa" stroke-width="2" fill="none" opacity="0.6"/>
+        </svg>
+        <div class="arch-layer">
+          <div class="arch-box factory">
+            <div class="title">VerdictFactory</div>
+            <div class="sub">createMarket()</div>
+          </div>
+        </div>
+        <div class="arch-layer">
+          <div class="arch-box market"><div class="title">Market A</div><div class="sub">stakes</div></div>
+          <div class="arch-box market"><div class="title">Market B</div><div class="sub">stakes</div></div>
+          <div class="arch-box market"><div class="title">Market …</div><div class="sub">per question</div></div>
+        </div>
+        <div class="arch-layer">
+          <div class="arch-box platform">
+            <div class="title">Somnia Agents Platform</div>
+            <div class="sub">0x037B…6776 · chain 50312</div>
+          </div>
+        </div>
+        <div class="arch-layer">
+          <div class="arch-box agent">
+            <div class="title">LLM Parse Website</div>
+            <div class="sub">agent id 12875401142070969085</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAYOUT LAB -->
+    <section class="section" id="payout">
+      <div class="section-label">05 · Payout physics</div>
+      <h2>Drag the stakes. See who eats the pool.</h2>
+      <div class="payout-lab">
+        <div class="payout-controls">
+          <label>YES stake (STT)</label>
+          <input type="range" id="rYes" min="1" max="100" value="10" />
+          <label>NO stake (STT)</label>
+          <input type="range" id="rNo" min="1" max="100" value="25" />
+          <label>Outcome</label>
+          <div class="outcome-pills">
+            <button type="button" class="outcome-pill yes active" data-o="yes">YES</button>
+            <button type="button" class="outcome-pill no" data-o="no">NO</button>
+            <button type="button" class="outcome-pill inv" data-o="inv">INVALID</button>
+          </div>
+        </div>
+        <div class="payout-viz">
+          <div class="bar-row">
+            <span class="bar-label y">YES</span>
+            <div class="bar-track"><div class="bar-fill yes-fill" id="barYes" style="width:30%">0.01</div></div>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label n">NO</span>
+            <div class="bar-track"><div class="bar-fill no-fill" id="barNo" style="width:70%">0.02</div></div>
+          </div>
+          <div class="payout-result-card">
+            <div class="headline" id="payoutHeadline">Alice (YES) takes the entire 0.03 STT pool</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STORYBOARD -->
+    <section class="section" id="demo">
+      <div class="section-label">06 · Your 90-second video</div>
+      <h2>Record this storyboard</h2>
+      <div class="storyboard">
+        <div class="story-frame" data-time="0:00">
+          <div class="emoji">❓</div>
+          <strong>Who decides YES or NO?</strong>
+          <span>Hook — terminal + Blockscout</span>
+        </div>
+        <div class="story-frame" data-time="0:20">
+          <div class="emoji">🏭</div>
+          <strong>Create market</strong>
+          <span>factory.createMarket + URL</span>
+        </div>
+        <div class="story-frame" data-time="0:35">
+          <div class="emoji">⚔️</div>
+          <strong>Stake YES / NO</strong>
+          <span>Two wallets, two sides</span>
+        </div>
+        <div class="story-frame" data-time="0:50">
+          <div class="emoji">🤖</div>
+          <strong>resolve() → agent</strong>
+          <span>Receipt on agents.testnet</span>
+        </div>
+        <div class="story-frame" data-time="1:05">
+          <div class="emoji">💰</div>
+          <strong>claim() payout</strong>
+          <span>Consensus → STT to winner</span>
+        </div>
+      </div>
+      <pre style="margin-top:1.5rem;font-family:'DM Mono',monospace;font-size:0.75rem;color:#6b6b7a;background:#0a0a10;padding:1rem;border-radius:12px;border:1px solid var(--line)">forge test -vv  &&  ./scripts/demo-testnet.sh</pre>
+    </section>
+
+    <footer class="page-foot">
+      <p>Verdict · <code>code/verdict</code> · Open this file in any browser · Host on GitHub Pages / S3 to share with judges</p>
+    </footer>
+  </div>
+
+  <script>
+    // Particle ambient background
+    (function () {
+      const c = document.getElementById("ambient");
+      const ctx = c.getContext("2d");
+      let w, h, pts = [];
+      function resize() {
+        w = c.width = window.innerWidth;
+        h = c.height = window.innerHeight;
+        pts = Array.from({ length: 55 }, () => ({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.35,
+          vy: (Math.random() - 0.5) * 0.35,
+          r: Math.random() * 2 + 0.5,
+          hue: Math.random() > 0.5 ? 150 : 270,
+        }));
+      }
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        pts.forEach((p, i) => {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x < 0 || p.x > w) p.vx *= -1;
+          if (p.y < 0 || p.y > h) p.vy *= -1;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${p.hue}, 80%, 60%, 0.35)`;
+          ctx.fill();
+          for (let j = i + 1; j < pts.length; j++) {
+            const q = pts[j];
+            const d = Math.hypot(p.x - q.x, p.y - q.y);
+            if (d < 140) {
+              ctx.strokeStyle = `hsla(${p.hue}, 60%, 50%, ${0.12 * (1 - d / 140)})`;
+              ctx.lineWidth = 0.5;
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(q.x, q.y);
+              ctx.stroke();
+            }
+          }
+        });
+        requestAnimationFrame(draw);
+      }
+      resize();
+      window.addEventListener("resize", resize);
+      draw();
+    })();
+
+    // Hero pool ticker
+    (function () {
+      let t = 0;
+      setInterval(() => {
+        t += 0.02;
+        const y = (0.008 + Math.sin(t) * 0.004).toFixed(3);
+        const n = (0.015 + Math.cos(t * 0.8) * 0.006).toFixed(3);
+        document.getElementById("heroYes").textContent = y;
+        document.getElementById("heroNo").textContent = n;
+      }, 80);
+    })();
+
+    // Journey steps
+    const steps = [
+      {
+        title: "Deploy a market",
+        text: "Factory spins up a new VerdictMarket contract with your question, source URL, resolution rule, and deadline. One contract = one question.",
+        fn: "factory.createMarket(question, url, rule, deadline)",
+        mock: `
+          <div class="mock-ui">
+            <div class="mock-chrome"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span></div>
+            <div class="mock-body">
+              <div class="mock-q">Does the page contain VERDICT?</div>
+              <div style="font-size:0.7rem;color:#8b8b9e;font-family:monospace;margin-bottom:0.75rem">url: example.com · deadline: 2 min</div>
+              <button class="mock-btn claim" style="margin:0">Create market ✓</button>
+            </div>
+          </div>`,
+      },
+      {
+        title: "Stake YES or NO",
+        text: "Anyone sends STT before the deadline. Pools grow on-chain. Minimum 0.001 STT per stake.",
+        fn: "market.stake(true) · market.stake(false)",
+        mock: `
+          <div class="mock-ui">
+            <div class="mock-chrome"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span></div>
+            <div class="mock-body">
+              <div class="mock-q">Does the page contain VERDICT?</div>
+              <div class="mock-pools">
+                <div class="mock-pool yes-p"><div class="tag">YES</div><div class="val">0.01</div></div>
+                <div class="mock-pool no-p"><div class="tag">NO</div><div class="val">0.02</div></div>
+              </div>
+              <button class="mock-btn" style="background:rgba(0,255,157,0.2);color:#00ff9d;width:48%;display:inline-block">Stake YES</button>
+              <button class="mock-btn" style="background:rgba(255,61,106,0.2);color:#ff3d6a;width:48%;display:inline-block;margin-left:4%">Stake NO</button>
+            </div>
+          </div>`,
+      },
+      {
+        title: "Call resolve()",
+        text: "After deadline, anyone triggers resolution with the agent deposit. Market → Resolving.",
+        fn: "market.resolve() + STT deposit",
+        mock: `
+          <div class="mock-ui">
+            <div class="mock-chrome"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span></div>
+            <div class="mock-body">
+              <div class="mock-q">Deadline passed ✓</div>
+              <button class="mock-btn resolve">Resolve → Somnia Agent</button>
+              <div class="mock-agent-bar"><span class="spinner"></span> Sending createRequest to platform…</div>
+            </div>
+          </div>`,
+      },
+      {
+        title: "Agent + consensus",
+        text: "Validators run LLM Parse Website on your URL. Majority picks YES, NO, or INVALID. Platform callbacks handleResponse(). 30–120s on testnet.",
+        fn: "handleResponse(requestId, responses, status)",
+        mock: `
+          <div class="mock-ui">
+            <div class="mock-chrome"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span></div>
+            <div class="mock-body mock-verdict yes-win">
+              <div style="font-size:0.7rem;color:#a78bfa;margin-bottom:0.5rem">AGENT RECEIPT · CONSENSUS OK</div>
+              <div class="big">YES</div>
+              <div style="font-size:0.75rem;color:#8b8b9e;margin-top:0.5rem">"Page contains VERDICT (case insensitive)"</div>
+            </div>
+          </div>`,
+      },
+      {
+        title: "Winners claim",
+        text: "Pro-rata payout to winning side—or everyone refunded on INVALID. One claim per address.",
+        fn: "market.claim()",
+        mock: `
+          <div class="mock-ui">
+            <div class="mock-chrome"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span></div>
+            <div class="mock-body">
+              <div class="mock-verdict yes-win" style="padding:0.5rem 0"><div class="big" style="font-size:2rem">YES WINS</div></div>
+              <div class="mock-pools" style="margin-top:1rem">
+                <div class="mock-pool yes-p"><div class="tag">Alice gets</div><div class="val">0.03</div></div>
+                <div class="mock-pool no-p" style="opacity:0.4"><div class="tag">Bob gets</div><div class="val">0</div></div>
+              </div>
+              <button class="mock-btn claim">Claim winnings</button>
+            </div>
+          </div>`,
+      },
+    ];
+
+    const stage = document.getElementById("journeyStage");
+    const btns = document.querySelectorAll(".journey-btn");
+
+    function renderStep(i) {
+      const s = steps[i];
+      stage.innerHTML = `
+        <div class="journey-copy">
+          <h3>${s.title}</h3>
+          <p>${s.text}</p>
+          <code class="fn">${s.fn}</code>
+        </div>
+        <div>${s.mock}</div>
+      `;
+      btns.forEach((b, j) => b.classList.toggle("active", j === i));
+    }
+
+    btns.forEach((b) => b.addEventListener("click", () => renderStep(Number(b.dataset.step))));
+    renderStep(0);
+
+    // Payout lab
+    const rYes = document.getElementById("rYes");
+    const rNo = document.getElementById("rNo");
+    const barYes = document.getElementById("barYes");
+    const barNo = document.getElementById("barNo");
+    const headline = document.getElementById("payoutHeadline");
+    let outcome = "yes";
+
+    document.querySelectorAll(".outcome-pill").forEach((p) => {
+      p.addEventListener("click", () => {
+        document.querySelectorAll(".outcome-pill").forEach((x) => x.classList.remove("active"));
+        p.classList.add("active");
+        outcome = p.dataset.o;
+        updatePayout();
+      });
+    });
+
+    function updatePayout() {
+      const yes = Number(rYes.value) / 1000;
+      const no = Number(rNo.value) / 1000;
+      const pool = yes + no;
+      const total = yes + no || 1;
+      const yPct = (yes / total) * 100;
+      const nPct = (no / total) * 100;
+      barYes.style.width = yPct + "%";
+      barNo.style.width = nPct + "%";
+      barYes.textContent = yes.toFixed(3);
+      barNo.textContent = no.toFixed(3);
+
+      if (outcome === "inv") {
+        headline.textContent = `Refund: YES gets ${yes.toFixed(3)} STT back · NO gets ${no.toFixed(3)} STT back`;
+        barYes.style.opacity = barNo.style.opacity = "0.6";
+      } else if (outcome === "yes") {
+        barYes.style.opacity = "1";
+        barNo.style.opacity = "0.35";
+        headline.textContent = `YES side splits entire ${pool.toFixed(3)} STT pool (Alice with ${yes.toFixed(3)} stake takes it all if alone on YES)`;
+      } else {
+        barYes.style.opacity = "0.35";
+        barNo.style.opacity = "1";
+        headline.textContent = `NO side splits entire ${pool.toFixed(3)} STT pool`;
+      }
+    }
+    rYes.addEventListener("input", updatePayout);
+    rNo.addEventListener("input", updatePayout);
+    updatePayout();
+  </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "name": "@verdict/operator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CLI and MCP operator for Verdict prediction markets on Somnia",
+  "bin": {
+    "verdict": "./dist/cli.js",
+    "verdict-mcp": "./dist/mcp-server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "cli": "tsx src/cli.ts",
+    "mcp": "tsx src/mcp-server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.0",
+    "commander": "^13.1.0",
+    "dotenv": "^16.4.7",
+    "viem": "^2.31.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

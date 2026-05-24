@@ -10,6 +10,8 @@ broadcast/
 # Node
 app/node_modules/
 app/.next/
+operator/node_modules/
+operator/dist/
 
 # OS
 .DS_Store

@@ -1,13 +1,18 @@
-import { parseEventLogs, type Hash, type TransactionReceipt } from "viem";
-import { factoryAbi } from "./contracts";
+import { getAddress, type Hash, type TransactionReceipt } from "viem";
+import { keccak256, toBytes } from "viem";
+
+const MARKET_CREATED_TOPIC = keccak256(
+  toBytes("MarketCreated(uint256,address,address)")
+);
 
 export function marketAddressFromReceipt(receipt: TransactionReceipt): `0x${string}` | null {
-  const events = parseEventLogs({
-    abi: factoryAbi,
-    logs: receipt.logs,
-    eventName: "MarketCreated",
-  });
-  return events[0]?.args.market ?? null;
+  for (const log of receipt.logs) {
+    if (log.topics[0]?.toLowerCase() !== MARKET_CREATED_TOPIC.toLowerCase()) continue;
+    const marketTopic = log.topics[2];
+    if (!marketTopic) continue;
+    return getAddress(marketTopic);
+  }
+  return null;
 }
 
 export async function waitForMarketFromTx(txHash: Hash) {

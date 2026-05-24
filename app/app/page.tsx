@@ -2,19 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  createPublicClient,
-  createWalletClient,
-  custom,
-  http,
-  type Address,
-  type Hash,
-} from "viem";
+import { type Address, type Hash } from "viem";
 import { somniaTestnet } from "@/lib/chain";
 import { FACTORY_ADDRESS, factoryAbi } from "@/lib/contracts";
+import { waitForMarketFromTx } from "@/lib/factory";
+import { useWallet } from "@/hooks/useWallet";
 
 export default function Home() {
-  const [account, setAccount] = useState<Address | null>(null);
+  const { account, connect, getWalletClient } = useWallet();
   const [question, setQuestion] = useState("Does the page contain VERDICT?");
   const [sourceUrl, setSourceUrl] = useState("https://example.com");
   const [resolvePrompt, setResolvePrompt] = useState(
@@ -28,19 +23,13 @@ export default function Home() {
 
   const factoryConfigured = Boolean(FACTORY_ADDRESS);
 
-  async function connect() {
+  async function handleConnect() {
     setError(null);
-    const eth = window.ethereum;
-    if (!eth) {
-      setError("Install MetaMask or another EVM wallet.");
-      return;
+    try {
+      await connect();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     }
-    const wallet = createWalletClient({
-      chain: somniaTestnet,
-      transport: custom(eth as Parameters<typeof custom>[0]),
-    });
-    const [addr] = await wallet.requestAddresses();
-    setAccount(addr);
   }
 
   async function createMarket() {
@@ -50,37 +39,19 @@ export default function Home() {
     setTxHash(null);
     setMarketAddress(null);
     try {
-      const eth = window.ethereum!;
-      const wallet = createWalletClient({
-        account,
-        chain: somniaTestnet,
-        transport: custom(eth as Parameters<typeof custom>[0]),
-      });
+      const wallet = getWalletClient();
       const deadline =
         BigInt(Math.floor(Date.now() / 1000)) + BigInt(Number(deadlineMinutes) * 60);
       const hash = await wallet.writeContract({
+        chain: somniaTestnet,
+        account,
         address: FACTORY_ADDRESS,
         abi: factoryAbi,
         functionName: "createMarket",
         args: [question, sourceUrl, resolvePrompt, deadline],
       });
       setTxHash(hash);
-      const publicClient = createPublicClient({
-        chain: somniaTestnet,
-        transport: http(),
-      });
-      await publicClient.waitForTransactionReceipt({ hash });
-      const count = (await publicClient.readContract({
-        address: FACTORY_ADDRESS,
-        abi: factoryAbi,
-        functionName: "marketCount",
-      })) as bigint;
-      const market = (await publicClient.readContract({
-        address: FACTORY_ADDRESS,
-        abi: factoryAbi,
-        functionName: "getMarket",
-        args: [count - BigInt(1)],
-      })) as Address;
+      const market = await waitForMarketFromTx(hash);
       setMarketAddress(market);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -109,7 +80,7 @@ export default function Home() {
       <section className="flex flex-col gap-3">
         <button
           type="button"
-          onClick={connect}
+          onClick={handleConnect}
           className="rounded-lg bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white"
         >
           {account ? `${account.slice(0, 6)}…${account.slice(-4)}` : "Connect wallet"}

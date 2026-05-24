@@ -39,8 +39,6 @@ contract VerdictMarket is IAgentRequesterHandler {
     Outcome public outcome;
     string public agentReasoning;
 
-    uint256 public yesPool;
-    uint256 public noPool;
     uint256 public totalYesStake;
     uint256 public totalNoStake;
 
@@ -53,8 +51,6 @@ contract VerdictMarket is IAgentRequesterHandler {
     mapping(address => bool) public claimed;
 
     mapping(uint256 => bool) public pendingRequests;
-    /// @dev Set during `createRequest` for synchronous testnet mocks; cleared after callback.
-    bool internal resolutionInFlight;
 
     event Staked(address indexed user, bool indexed isYes, uint256 amount);
     event ResolveRequested(uint256 indexed requestId);
@@ -63,8 +59,8 @@ contract VerdictMarket is IAgentRequesterHandler {
 
     error NotFactory();
     error MarketNotOpen();
-    error MarketResolving();
-    error AlreadyResolved();
+    error NotResolving();
+    error NotResolved();
     error DeadlinePassed();
     error BeforeDeadline();
     error ZeroStake();
@@ -109,11 +105,9 @@ contract VerdictMarket is IAgentRequesterHandler {
         if (isYes) {
             yesStake[msg.sender] += msg.value;
             totalYesStake += msg.value;
-            yesPool += msg.value;
         } else {
             noStake[msg.sender] += msg.value;
             totalNoStake += msg.value;
-            noPool += msg.value;
         }
         emit Staked(msg.sender, isYes, msg.value);
     }
@@ -151,14 +145,12 @@ contract VerdictMarket is IAgentRequesterHandler {
         uint256 deposit = requiredResolveDeposit();
         if (msg.value < deposit) revert Underfunded();
 
-        resolutionInFlight = true;
         requestId = platform.createRequest{value: msg.value}(
             parseAgentId,
             address(this),
             this.handleResponse.selector,
             payload
         );
-        resolutionInFlight = false;
         pendingRequests[requestId] = true;
         emit ResolveRequested(requestId);
     }
@@ -170,13 +162,11 @@ contract VerdictMarket is IAgentRequesterHandler {
         Request memory
     ) external override {
         if (msg.sender != address(platform)) revert OnlyPlatform();
-        if (!resolutionInFlight && !pendingRequests[requestId]) revert UnknownRequest();
+        if (!pendingRequests[requestId]) revert UnknownRequest();
         delete pendingRequests[requestId];
-        resolutionInFlight = false;
+        if (state != MarketState.Resolving) revert NotResolving();
 
-        if (state != MarketState.Resolving) revert MarketResolving();
-
-        poolAtResolution = yesPool + noPool;
+        poolAtResolution = totalYesStake + totalNoStake;
 
         if (status != ResponseStatus.Success || responses.length == 0) {
             outcome = Outcome.Invalid;
@@ -208,22 +198,18 @@ contract VerdictMarket is IAgentRequesterHandler {
     }
 
     function totalPool() public view returns (uint256) {
-        return yesPool + noPool;
+        return totalYesStake + totalNoStake;
     }
 
     function claim() external {
-        if (state != MarketState.Resolved) revert MarketNotOpen();
+        if (state != MarketState.Resolved) revert NotResolved();
         if (claimed[msg.sender]) revert AlreadyClaimed();
 
         uint256 amount;
         if (outcome == Outcome.Invalid || winningStakeTotal == 0) {
             amount = yesStake[msg.sender] + noStake[msg.sender];
-        } else if (outcome == Outcome.Yes) {
-            uint256 stake_ = yesStake[msg.sender];
-            if (stake_ == 0) revert NothingToClaim();
-            amount = (stake_ * poolAtResolution) / winningStakeTotal;
-        } else if (outcome == Outcome.No) {
-            uint256 stake_ = noStake[msg.sender];
+        } else {
+            uint256 stake_ = outcome == Outcome.Yes ? yesStake[msg.sender] : noStake[msg.sender];
             if (stake_ == 0) revert NothingToClaim();
             amount = (stake_ * poolAtResolution) / winningStakeTotal;
         }
@@ -242,30 +228,37 @@ contract VerdictMarket is IAgentRequesterHandler {
     receive() external payable {}
 
     function _parseOutcome(string memory verdict) internal pure returns (Outcome) {
-        bytes memory b = bytes(verdict);
-        if (_containsIgnoreCase(b, "INVALID")) return Outcome.Invalid;
-        if (_containsIgnoreCase(b, "YES")) return Outcome.Yes;
-        if (_containsIgnoreCase(b, "NO")) return Outcome.No;
+        if (_eqWord(verdict, "YES")) return Outcome.Yes;
+        if (_eqWord(verdict, "NO")) return Outcome.No;
+        if (_eqWord(verdict, "INVALID")) return Outcome.Invalid;
         return Outcome.Invalid;
     }
 
-    function _containsIgnoreCase(bytes memory haystack, string memory needle) internal pure returns (bool) {
-        bytes memory n = bytes(needle);
-        if (n.length == 0 || haystack.length < n.length) return false;
-        for (uint256 i = 0; i <= haystack.length - n.length; i++) {
-            bool matchAll = true;
-            for (uint256 j = 0; j < n.length; j++) {
-                if (_lower(haystack[i + j]) != _lower(n[j])) {
-                    matchAll = false;
-                    break;
-                }
-            }
-            if (matchAll) return true;
+    /// @dev Case-insensitive compare after trimming ASCII whitespace.
+    function _eqWord(string memory value, string memory word) internal pure returns (bool) {
+        bytes memory v = bytes(value);
+        bytes memory w = bytes(word);
+        uint256 vi = 0;
+        uint256 vEnd = v.length;
+        while (vi < vEnd && v[vi] == 0x20) vi++;
+        while (vEnd > vi && v[vEnd - 1] == 0x20) vEnd--;
+
+        uint256 wi = 0;
+        uint256 wEnd = w.length;
+        while (wi < wEnd && w[wi] == 0x20) wi++;
+        while (wEnd > wi && w[wEnd - 1] == 0x20) wEnd--;
+
+        uint256 vLen = vEnd - vi;
+        uint256 wLen = wEnd - wi;
+        if (vLen != wLen) return false;
+
+        for (uint256 i = 0; i < vLen; i++) {
+            if (_asciiLower(v[vi + i]) != _asciiLower(w[wi + i])) return false;
         }
-        return false;
+        return true;
     }
 
-    function _lower(bytes1 c) internal pure returns (bytes1) {
+    function _asciiLower(bytes1 c) internal pure returns (bytes1) {
         if (c >= 0x41 && c <= 0x5A) {
             return bytes1(uint8(c) + 32);
         }

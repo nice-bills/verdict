@@ -3,13 +3,21 @@ pragma solidity ^0.8.24;
 
 import {IAgentRequester, Response, Request, ResponseStatus, ConsensusType} from "../interfaces/IAgentRequester.sol";
 
-/// @notice Test double for Somnia Agents platform — synchronously invokes callback.
+/// @notice Test double for Somnia Agents platform — defers callback until `deliverResponse`.
 contract MockAgentPlatform is IAgentRequester {
+    struct PendingDelivery {
+        address callbackAddress;
+        bytes4 callbackSelector;
+        bool exists;
+    }
+
     uint256 public minDeposit = 0.03 ether;
     uint256 internal nextRequestId = 1;
 
     string public nextResult = "YES";
     bool public nextFail;
+
+    mapping(uint256 => PendingDelivery) internal pending;
 
     function setNextResult(string calldata result) external {
         nextResult = result;
@@ -38,6 +46,19 @@ contract MockAgentPlatform is IAgentRequester {
         bytes calldata
     ) external payable returns (uint256 requestId) {
         requestId = nextRequestId++;
+        pending[requestId] = PendingDelivery({
+            callbackAddress: callbackAddress,
+            callbackSelector: callbackSelector,
+            exists: true
+        });
+    }
+
+    /// @notice Invoke the deferred agent callback (call after `resolve()` returns).
+    function deliverResponse(uint256 requestId) external {
+        PendingDelivery memory delivery = pending[requestId];
+        if (!delivery.exists) revert("unknown request");
+
+        delete pending[requestId];
 
         Response[] memory responses = new Response[](1);
         responses[0] = Response({
@@ -55,8 +76,10 @@ contract MockAgentPlatform is IAgentRequester {
         details.status = status;
         details.consensusType = ConsensusType.Majority;
 
-        (bool ok,) = callbackAddress.call(
-            abi.encodeWithSelector(callbackSelector, requestId, responses, status, details)
+        (bool ok,) = delivery.callbackAddress.call(
+            abi.encodeWithSelector(
+                delivery.callbackSelector, requestId, responses, status, details
+            )
         );
         require(ok, "callback failed");
     }

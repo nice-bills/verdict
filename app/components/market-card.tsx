@@ -17,7 +17,11 @@ export function MarketCard({ market }: { market: MarketSummary }) {
   return (
     <Link href={`/market/${market.address}`} className="market-card glass-panel">
       <div className="market-card__top">
-        <span className="market-card__status">{statusLabel(market)}</span>
+        <span
+          className={`market-card__status ${market.state === 0 ? "market-card__status--open" : "market-card__status--resolved"}`}
+        >
+          {statusLabel(market)}
+        </span>
         <span className="market-card__pool">{yesPct}% YES</span>
       </div>
       <h2 className="market-card__question display-serif">{market.question}</h2>

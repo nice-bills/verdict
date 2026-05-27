@@ -8,6 +8,7 @@ export function CinematicBackground() {
   return (
     <div className="cinematic-bg" aria-hidden>
       <div className="cinematic-bg__mesh" />
+      <div className="cinematic-bg__grain" />
       <div className="cinematic-bg__scrim" />
     </div>
   );

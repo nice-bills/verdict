@@ -1,26 +1,41 @@
-# Verdict — Hallmark design system (locked)
+# Design — Verdict
 
-**Hallmark · pre-emit critique: P4 H5 E4 S5 R4 V4**
+Locked system for every page. Hallmark **studied-DNA** from reference video + **atmospheric** genre.
 
-| Field | Value |
-| --- | --- |
-| **Genre** | atmospheric (studied-DNA from reference video) |
-| **Macrostructure** | Marquee Hero (fold) + Ecosystem Index (markets rail below) |
-| **Theme** | studied-DNA · cinematic glass |
-| **Nav** | N5 Floating pill |
-| **Footer** | Ft5 Statement |
-| **Enrichment** | none — animated mesh backdrop only |
-| **Audience** | Agentathon judges + Somnia builders using prediction markets |
-| **Use case** | Browse live markets, stake YES/NO, resolve via agent, claim |
-| **Tone** | cinematic, calm, trustworthy — not devtools, not terminal |
+## Genre
+atmospheric
 
-## Rules
+## Macrostructure family
+- **Marketing / home:** Marquee Hero (fold) → Narrative Workflow strip (4 steps) → Ecosystem Index (markets)
+- **App / create:** centered narrow form in glass panel
+- **App / market:** centered question + single glass trade panel
 
-- **No dev smoke-test copy** in the UI (no VERDICT string-matching examples).
-- **Markets list shows on-chain `question` text**, not addresses as primary label.
-- **Tokens only** — see `tokens.css`; no inline hex in components.
-- **Instrument Serif** display · **Inter** UI · addresses in tabular sans, never hero mono.
+## Theme
+- `--color-paper` oklch(12% 0.02 280)
+- `--color-ink` oklch(100% 0 0)
+- `--color-ink-body` oklch(100% 0 0 / 0.8)
+- `--color-ink-muted` oklch(100% 0 0 / 0.55)
+- `--color-rule` oklch(100% 0 0 / 0.12)
+- `--color-accent` oklch(85% 0.08 80) — focus only, not button fills
+- `--color-yes` oklch(78% 0.12 160)
+- `--color-no` oklch(72% 0.14 25)
 
-## Reference video DNA
+## Typography
+- Display: Instrument Serif 400
+- Body: Inter 400–500
+- Mono: avoid in UI; addresses use tabular Inter
 
-Liquid glass pills, centered serif, full-bleed atmospheric canvas, transparent/detached nav, scale hover on buttons.
+## Nav / footer
+- Nav: N5 floating pill (fixed, detached, blur)
+- Footer: Ft5 statement
+
+## Motion
+- fade-rise 24px, staggered; `prefers-reduced-motion` collapses
+- Buttons: scale(1.03) hover only
+
+## Voice
+- Product copy for prediction markets on Somnia — never dev smoke-test strings in defaults
+- On-chain questions display as-is (legacy test markets may show old copy)
+
+## Banned
+Terminal/matrix aesthetic, solid orange CTAs, monospace heroes, invented metrics, dashboard side-by-side create form

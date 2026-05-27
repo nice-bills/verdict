@@ -6,9 +6,10 @@ import { type Address, type Hash } from "viem";
 import { somniaTestnet } from "@/lib/chain";
 import { FACTORY_ADDRESS, factoryAbi } from "@/lib/contracts";
 import { waitForMarketFromTx } from "@/lib/factory";
-import { EXAMPLE_MARKET } from "@/lib/examples";
+import { DEMO_MARKET } from "@/lib/examples";
 import { useWallet } from "@/hooks/useWallet";
 import { SiteNav } from "@/components/site-nav";
+import { WalletBanner } from "@/components/wallet-banner";
 import { GlassButton, GlassPanel } from "@/components/glass";
 
 export default function CreatePage() {
@@ -16,7 +17,7 @@ export default function CreatePage() {
   const [question, setQuestion] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [resolvePrompt, setResolvePrompt] = useState("");
-  const [deadlineMinutes, setDeadlineMinutes] = useState("60");
+  const [deadlineMinutes, setDeadlineMinutes] = useState("30");
   const [txHash, setTxHash] = useState<Hash | null>(null);
   const [marketAddress, setMarketAddress] = useState<Address | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,11 +32,11 @@ export default function CreatePage() {
     }
   }
 
-  function fillExample() {
-    setQuestion(EXAMPLE_MARKET.question);
-    setSourceUrl(EXAMPLE_MARKET.sourceUrl);
-    setResolvePrompt(EXAMPLE_MARKET.resolvePrompt);
-    setDeadlineMinutes(EXAMPLE_MARKET.deadlineMinutes);
+  function fillDemo() {
+    setQuestion(DEMO_MARKET.question);
+    setSourceUrl(DEMO_MARKET.sourceUrl);
+    setResolvePrompt(DEMO_MARKET.resolvePrompt);
+    setDeadlineMinutes(DEMO_MARKET.deadlineMinutes);
   }
 
   async function createMarket() {
@@ -75,25 +76,17 @@ export default function CreatePage() {
     <>
       <SiteNav account={account} onConnect={handleConnect} />
 
-      <main className="page-gutter page-narrow fade-rise">
+      <main className="page-gutter page-narrow page-create fade-rise">
         <Link href="/" className="back-link">
           ← Markets
         </Link>
 
         <h1 className="display-serif page-title">Open a market</h1>
         <p className="page-lede">
-          Write a clear question, point to a public URL the agent can read, and describe how to
-          decide YES, NO, or INVALID.
+          Plain-English question, a URL the agent can fetch, and a rule for YES / NO / INVALID.
         </p>
 
-        {!account && (
-          <GlassPanel className="banner-panel">
-            <p>Connect a wallet on Somnia testnet (chain 50312) to create a market.</p>
-            <GlassButton type="button" onClick={handleConnect} className="mt-4">
-              Connect wallet
-            </GlassButton>
-          </GlassPanel>
-        )}
+        <WalletBanner connected={Boolean(account)} onConnect={handleConnect} />
 
         <GlassPanel className="form-panel">
           <form
@@ -135,25 +128,21 @@ export default function CreatePage() {
               />
             </label>
             <label className="glass-label">
-              Deadline (minutes from now)
+              Deadline (minutes)
               <input
                 type="number"
                 min={1}
-                className="glass-input"
-                style={{ maxWidth: "8rem" }}
+                className="glass-input glass-input--short"
                 value={deadlineMinutes}
                 onChange={(e) => setDeadlineMinutes(e.target.value)}
               />
             </label>
 
             <div className="form-actions">
-              <GlassButton type="button" variant="ghost" onClick={fillExample}>
-                Try an example
+              <GlassButton type="button" variant="ghost" onClick={fillDemo}>
+                Use demo example
               </GlassButton>
-              <GlassButton
-                type="submit"
-                disabled={!account || !FACTORY_ADDRESS || busy}
-              >
+              <GlassButton type="submit" disabled={!account || !FACTORY_ADDRESS || busy}>
                 {busy ? "Submitting…" : "Create on Somnia"}
               </GlassButton>
             </div>
@@ -167,7 +156,7 @@ export default function CreatePage() {
               target="_blank"
               rel="noreferrer"
             >
-              View transaction
+              View transaction on Blockscout
             </a>
           </p>
         )}

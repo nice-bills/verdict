@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { SiteNav } from "@/components/site-nav";
 import { MarketCard } from "@/components/market-card";
+import { HowItWorks } from "@/components/how-it-works";
+import { WalletBanner } from "@/components/wallet-banner";
 import { GlassButton } from "@/components/glass";
 import { useWallet } from "@/hooks/useWallet";
 import { useMarketSummaries } from "@/hooks/useMarketSummaries";
@@ -16,7 +18,7 @@ export default function Home() {
     try {
       await connect();
     } catch {
-      /* surfaced on create / market pages */
+      /* WalletBanner surfaces connect on other pages */
     }
   }
 
@@ -25,18 +27,34 @@ export default function Home() {
       <SiteNav account={account} onConnect={handleConnect} />
 
       <section className="hero-marquee fade-rise">
-        <h1 className="display-serif display-xxl">On-chain prediction markets.</h1>
+        <h1 className="display-serif display-xxl">Ask the chain.</h1>
+        <p className="hero-marquee__lede">
+          Prediction markets on Somnia — resolved by validator consensus, not a multisig.
+        </p>
+        <div className="hero-marquee__cta">
+          <Link href="/create" className="glass-btn">
+            Open a market
+          </Link>
+          {markets[0] && (
+            <Link href={`/market/${markets[0].address}`} className="glass-btn glass-btn--ghost">
+              View live market
+            </Link>
+          )}
+        </div>
       </section>
 
       <hr className="rule-thick" />
 
-      <main className="page-gutter ecosystem fade-rise fade-rise-1">
+      <WalletBanner connected={Boolean(account)} onConnect={handleConnect} />
+
+      <HowItWorks />
+
+      <main className="page-gutter ecosystem fade-rise fade-rise-3">
         <header className="ecosystem__head">
           <div>
             <h2 className="display-serif ecosystem__title">Live markets</h2>
             <p className="ecosystem__lede">
-              Stake STT on outcomes. After the deadline, Somnia&apos;s agent resolves from your
-              source URL.
+              Questions and pools are read from the factory on Somnia testnet.
             </p>
           </div>
           <div className="ecosystem__actions">
@@ -51,7 +69,7 @@ export default function Home() {
 
         {!FACTORY_ADDRESS && (
           <p className="banner-warn">
-            Configure <code>NEXT_PUBLIC_FACTORY_ADDRESS</code> in <code>app/.env.local</code>
+            Set NEXT_PUBLIC_FACTORY_ADDRESS in app/.env.local (see deployments/shannon.json).
           </p>
         )}
 
@@ -68,9 +86,7 @@ export default function Home() {
         {!loading && markets.length === 0 && !error && (
           <div className="empty-state glass-panel">
             <p className="display-serif empty-state__title">No markets yet</p>
-            <p className="empty-state__body">
-              Be the first to open a question on Somnia testnet.
-            </p>
+            <p className="empty-state__body">Create the first market on Somnia testnet.</p>
             <Link href="/create" className="glass-btn">
               Create a market
             </Link>
@@ -93,14 +109,14 @@ export default function Home() {
           Stakes lock in. Agents resolve. Winners claim.
         </p>
         <div className="foot-stmt__meta">
-          <span>Verdict · Somnia testnet</span>
+          <span>Verdict · Somnia Agentathon</span>
           <a
-            href="https://somnia-testnet.blockscout.com"
+            href="https://agents.testnet.somnia.network"
             target="_blank"
             rel="noreferrer"
             className="foot-stmt__link"
           >
-            Blockscout
+            Agent receipts
           </a>
         </div>
       </footer>

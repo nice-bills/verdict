@@ -3,14 +3,16 @@
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { formatEther, parseEther, type Address, type Hash } from "viem";
+import { parseEther, type Address, type Hash } from "viem";
 import { somniaTestnet } from "@/lib/chain";
 import { marketAbi, OUTCOME_LABELS, STATE_LABELS } from "@/lib/contracts";
 import { publicClient } from "@/lib/clients";
 import { useWallet } from "@/hooks/useWallet";
 import { useMarket } from "@/hooks/useMarket";
 import { SiteNav } from "@/components/site-nav";
-import { GlassButton, GlassPanel } from "@/components/glass";
+import { WalletBanner } from "@/components/wallet-banner";
+import { MarketTradePanel } from "@/components/market-trade-panel";
+import { GlassPanel } from "@/components/glass";
 
 const MIN_STAKE = "0.001";
 
@@ -32,9 +34,12 @@ export default function MarketPage() {
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
+    const id = setInterval(() => {
+      setNow(Math.floor(Date.now() / 1000));
+      if (snapshot?.state === 1) refresh().catch(() => {});
+    }, 5000);
     return () => clearInterval(id);
-  }, []);
+  }, [refresh, snapshot?.state]);
 
   const error = actionError ?? loadError;
 
@@ -108,18 +113,16 @@ export default function MarketPage() {
       ? Math.max(0, Number(snapshot.deadline) - now)
       : 0;
 
-  const yes = snapshot ? Number(formatEther(snapshot.totalYesStake)) : 0;
-  const no = snapshot ? Number(formatEther(snapshot.totalNoStake)) : 0;
-  const yesPct = yes + no > 0 ? Math.round((yes / (yes + no)) * 100) : 50;
-
   return (
     <>
       <SiteNav account={account} onConnect={handleConnect} />
 
-      <main className="page-gutter page-narrow" style={{ maxWidth: "40rem" }}>
+      <main className="page-gutter page-market">
         <Link href="/" className="back-link fade-rise">
           ← Markets
         </Link>
+
+        <WalletBanner connected={Boolean(account)} onConnect={handleConnect} />
 
         {!snapshot && !loadError && (
           <p className="page-lede fade-rise">Loading market…</p>
@@ -127,153 +130,51 @@ export default function MarketPage() {
 
         {snapshot && (
           <>
-            <header className="fade-rise fade-rise-1" style={{ textAlign: "center" }}>
-              <p className="market-card__status">
+            <header className="market-header fade-rise fade-rise-1">
+              <p className="market-header__status">
                 {STATE_LABELS[snapshot.state]}
                 {snapshot.state === 2
                   ? ` · ${OUTCOME_LABELS[snapshot.outcome]}`
                   : ""}
               </p>
-              <h1 className="display-serif page-title" style={{ marginTop: "var(--space-md)" }}>
-                {snapshot.question}
-              </h1>
-              <p
-                className="address-chip"
-                style={{ marginTop: "var(--space-md)", wordBreak: "break-all" }}
-              >
-                {market}
-              </p>
+              <h1 className="display-serif market-header__question">{snapshot.question}</h1>
+              <p className="address-chip market-header__addr">{market}</p>
             </header>
 
-            <GlassPanel className="form-panel fade-rise fade-rise-2" style={{ marginTop: "var(--space-xl)" }}>
-              <div className="pool-track" role="presentation">
-                <div className="pool-track__yes" style={{ width: `${yesPct}%` }} />
-                <div className="pool-track__no" />
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginTop: "var(--space-sm)",
-                  fontSize: "var(--text-xs)",
-                  color: "var(--color-ink-muted)",
-                }}
-              >
-                <span>YES {formatEther(snapshot.totalYesStake)}</span>
-                <span>{yesPct}%</span>
-                <span>NO {formatEther(snapshot.totalNoStake)}</span>
-              </div>
-
-              <dl
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "var(--space-md)",
-                  marginTop: "var(--space-lg)",
-                  fontSize: "var(--text-sm)",
-                }}
-              >
-                <div>
-                  <dt style={{ color: "var(--color-ink-muted)" }}>Deadline</dt>
-                  <dd style={{ marginTop: 4 }}>{formatDeadline(snapshot.deadline)}</dd>
-                </div>
-                <div>
-                  <dt style={{ color: "var(--color-ink-muted)" }}>Time left</dt>
-                  <dd style={{ marginTop: 4 }}>
-                    {snapshot.state !== 0
-                      ? "—"
-                      : pastDeadline
-                        ? "Ready to resolve"
-                        : `${Math.floor(secondsLeft / 60)}m ${secondsLeft % 60}s`}
-                  </dd>
-                </div>
-              </dl>
-
-              {!account && (
-                <p style={{ marginTop: "var(--space-lg)", textAlign: "center", fontSize: "var(--text-sm)" }}>
-                  Connect wallet to stake or resolve.
-                </p>
-              )}
-
-              {snapshot.state === 0 && (
-                <div className="stake-row" style={{ marginTop: "var(--space-lg)" }}>
-                  <label className="glass-label" style={{ margin: 0 }}>
-                    STT
-                    <input
-                      type="number"
-                      min={MIN_STAKE}
-                      step="0.001"
-                      className="glass-input"
-                      value={stakeAmount}
-                      onChange={(e) => setStakeAmount(e.target.value)}
-                      disabled={!account || busy}
-                    />
-                  </label>
-                  <GlassButton
-                    variant="yes"
-                    disabled={!account || busy}
-                    onClick={() => write("stake", { isYes: true })}
-                  >
-                    Stake YES
-                  </GlassButton>
-                  <GlassButton
-                    variant="no"
-                    disabled={!account || busy}
-                    onClick={() => write("stake", { isYes: false })}
-                  >
-                    Stake NO
-                  </GlassButton>
-                </div>
-              )}
-
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "var(--space-sm)",
-                  justifyContent: "center",
-                  marginTop: "var(--space-lg)",
-                }}
-              >
-                <GlassButton
-                  disabled={!account || busy || snapshot.state !== 0 || !pastDeadline}
-                  onClick={() => write("resolve")}
-                >
-                  Resolve ({formatEther(snapshot.resolveDeposit)} STT)
-                </GlassButton>
-                <GlassButton
-                  variant="ghost"
-                  disabled={!account || busy || snapshot.state !== 2}
-                  onClick={() => write("claim")}
-                >
-                  Claim payout
-                </GlassButton>
-              </div>
-            </GlassPanel>
+            <div className="fade-rise fade-rise-2">
+              <MarketTradePanel
+                snapshot={snapshot}
+                account={account}
+                busy={busy}
+                stakeAmount={stakeAmount}
+                onStakeAmount={setStakeAmount}
+                pastDeadline={Boolean(pastDeadline)}
+                secondsLeft={secondsLeft}
+                onStake={(isYes) => write("stake", { isYes })}
+                onResolve={() => write("resolve")}
+                onClaim={() => write("claim")}
+                formatDeadline={formatDeadline}
+              />
+            </div>
 
             {snapshot.reasoning && (
-              <GlassPanel className="form-panel fade-rise fade-rise-3" style={{ marginTop: "var(--space-md)" }}>
-                <p className="glass-label" style={{ margin: 0 }}>
-                  Agent reasoning
-                </p>
-                <p style={{ marginTop: "var(--space-md)", lineHeight: 1.6 }}>{snapshot.reasoning}</p>
+              <GlassPanel className="reasoning-panel form-panel fade-rise fade-rise-3">
+                <p className="glass-label">Agent reasoning</p>
+                <p className="reasoning-panel__text">{snapshot.reasoning}</p>
                 <a
+                  className="reasoning-panel__link"
                   href="https://agents.testnet.somnia.network"
                   target="_blank"
                   rel="noreferrer"
-                  style={{ display: "inline-block", marginTop: "var(--space-md)", fontSize: "var(--text-sm)" }}
                 >
-                  View receipts →
+                  View on Somnia agent explorer →
                 </a>
               </GlassPanel>
             )}
 
             {snapshot.state === 1 && (
-              <p
-                className="fade-rise fade-rise-3"
-                style={{ marginTop: "var(--space-md)", textAlign: "center", fontSize: "var(--text-sm)" }}
-              >
-                Resolving on Somnia — this page refreshes every few seconds.
+              <p className="resolving-note fade-rise fade-rise-3">
+                Resolving on Somnia — usually 30–120 seconds. This page auto-refreshes.
               </p>
             )}
           </>
@@ -281,8 +182,7 @@ export default function MarketPage() {
 
         {lastTx && (
           <a
-            className="form-meta"
-            style={{ display: "block", marginTop: "var(--space-md)" }}
+            className="form-meta form-meta--block"
             href={`https://somnia-testnet.blockscout.com/tx/${lastTx}`}
             target="_blank"
             rel="noreferrer"
@@ -291,7 +191,7 @@ export default function MarketPage() {
           </a>
         )}
 
-        {error && <p className="banner-error" style={{ marginTop: "var(--space-lg)" }}>{error}</p>}
+        {error && <p className="banner-error">{error}</p>}
       </main>
     </>
   );

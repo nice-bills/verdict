@@ -688,6 +688,68 @@
       color: var(--muted);
     }
 
+    .export-pdf {
+      margin-top: 1rem;
+      padding: 0;
+      border: none;
+      background: none;
+      font: inherit;
+      font-size: 0.8rem;
+      color: var(--warm);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+
+    .export-pdf:hover { color: var(--text); }
+
+    /* ─── Print / PDF (one slide per page, 16:9) ─── */
+    @media print {
+      @page {
+        size: 13.333in 7.5in;
+        margin: 0;
+      }
+
+      html, body {
+        height: auto !important;
+        overflow: visible !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .ambient, .grain, .topbar, .bottombar, .progress-wrap {
+        display: none !important;
+      }
+
+      .deck {
+        height: auto !important;
+        position: static !important;
+      }
+
+      .slide {
+        position: relative !important;
+        inset: auto !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        display: flex !important;
+        page-break-after: always;
+        break-after: page;
+        min-height: 7.5in;
+        height: 7.5in;
+        width: 13.333in;
+        padding: 0.85in 1in 0.75in;
+        box-sizing: border-box;
+      }
+
+      .slide:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+
+      .export-pdf { display: none !important; }
+    }
+
   </style>
 </head>
 <body>
@@ -1070,6 +1132,7 @@
           <a class="cta" href="verdict-explainer.html">Interactive guide</a>
         </div>
         <p class="footnote">Use arrow keys or the buttons below · Press F for fullscreen</p>
+        <button type="button" class="export-pdf" id="export-pdf">Save as PDF for Google Slides →</button>
       </div>
     </section>
 
@@ -1150,6 +1213,14 @@
 
       const hash = parseInt(location.hash.replace("#", ""), 10);
       goTo(hash >= 1 && hash <= total ? hash - 1 : 0);
+
+      document.getElementById("export-pdf")?.addEventListener("click", () => {
+        window.print();
+      });
+
+      if (location.search.includes("print=1")) {
+        setTimeout(() => window.print(), 600);
+      }
     })();
   </script>
 </body>

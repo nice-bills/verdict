@@ -79,6 +79,8 @@ Open **[docs/verdict-explainer.html](docs/verdict-explainer.html)** in a browser
 
 **Presentation deck:** **[docs/verdict-deck.html](docs/verdict-deck.html)** — 14-slide narrative (Problem → Solution → Proof → Ask). Fullscreen with `F`, navigate with arrow keys or click. Works as a leave-behind without a live presenter.
 
+**Google Slides / PowerPoint:** Export PDF via Print or `./scripts/export-deck-pdf.sh`, then import in Slides — see **[docs/DECK-EXPORT.md](docs/DECK-EXPORT.md)**.
+
 ## Demo video
 
 See [docs/DEMO.md](docs/DEMO.md). Record your coding agent using `verdict` / MCP tools, then Blockscout + [agent receipts](https://agents.testnet.somnia.network). No web UI required.

@@ -1,71 +1,52 @@
 # Hosting the Verdict UI
 
-The Next.js app lives in `app/`. Factory address and RPC defaults come from `deployments/shannon.json`, so you can deploy without setting secrets (override with `NEXT_PUBLIC_*` if needed).
+The Next.js app lives in `app/`. Factory address and RPC defaults come from `deployments/shannon.json` (synced to `app/config/shannon.json` at build), so Vercel deploys work without env secrets.
 
-## Enable GitHub Pages (required once)
+## Vercel (production)
 
-Until this is done, the **Deploy app** workflow builds successfully but the deploy step returns 404.
-
-1. Open **https://github.com/nice-bills/verdict/settings/pages**
-2. Under **Build and deployment → Source**, choose **GitHub Actions**
-3. Re-run the workflow: **Actions → Deploy app → Run workflow**
-
-Live URL: **https://nice-bills.github.io/verdict/**
-
-## Option A — Vercel (recommended)
-
-Best for `/market/[address]` routes: new markets work immediately without rebuilding.
+**Use this for the Agentathon demo.** New `/market/0x…` routes work immediately after you create a market — no rebuild.
 
 1. Import [nice-bills/verdict](https://github.com/nice-bills/verdict) on [vercel.com/new](https://vercel.com/new).
 2. Set **Root Directory** to `app`.
-3. Framework: **Next.js** (auto-detected).
-4. Optional env overrides:
+3. Framework: **Next.js** (auto-detected from `app/vercel.json`).
+4. Build command (default): `pnpm run prebuild && pnpm build`
+5. Optional env overrides:
    - `NEXT_PUBLIC_FACTORY_ADDRESS`
    - `NEXT_PUBLIC_RPC_URL`
-5. Deploy.
 
-### CI deploy (optional)
+Do **not** set `GITHUB_PAGES` or `NEXT_PUBLIC_BASE_PATH` on Vercel.
 
-Add GitHub repository secrets:
+### Optional CI deploy
+
+Add GitHub secrets and run **Actions → Deploy app (Vercel)** manually:
 
 | Secret | Purpose |
 |--------|---------|
-| `VERCEL_TOKEN` | [Vercel account token](https://vercel.com/account/tokens) |
-| `VERCEL_ORG_ID` | Team/user ID from Vercel project settings |
-| `VERCEL_PROJECT_ID` | Project ID from Vercel project settings |
-
-Push to `main` runs `.github/workflows/deploy-app.yml` → production deploy.
+| `VERCEL_TOKEN` | [Account token](https://vercel.com/account/tokens) |
+| `VERCEL_ORG_ID` | Team/user ID |
+| `VERCEL_PROJECT_ID` | Project ID |
 
 Local CLI:
 
 ```bash
 cd app
-npx vercel@41 link    # once
+npx vercel@41 link
 npx vercel@41 deploy --prod
 ```
 
-## Option B — GitHub Pages
+## GitHub Pages (optional mirror)
 
-Free static hosting at:
+Static export at **https://nice-bills.github.io/verdict/** — requires **Settings → Pages → GitHub Actions**, then **Deploy app** workflow.
 
-**https://nice-bills.github.io/verdict/**
+- Uses `GITHUB_PAGES=true` and `basePath=/verdict` in CI only.
+- New markets need a workflow re-run (or use Vercel).
 
-Enabled by `.github/workflows/deploy-app.yml` on every push to `main` (app or deployments changes).
+## Wallet / demo
 
-- Uses `output: "export"` and `basePath: /verdict`.
-- Market pages known at **build time** are pre-rendered from the factory on Somnia.
-- **After you create a new market**, re-run the workflow (*Actions → Deploy app → Run workflow*) so `/market/0x…` exists, **or** use Vercel for zero-friction new markets.
+- MetaMask on **Somnia testnet (chain 50312)** — the app prompts to switch/add the chain.
+- Create markets from `/create`; use **Use demo example** for Agentathon copy.
+- Legacy smoke markets are hidden on home.
 
-### Enable Pages (one-time)
+## Explainer
 
-Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-
-## Wallet / demo notes
-
-- Users need MetaMask (or similar) on **Somnia testnet (chain 50312)**.
-- Connect wallet on the hosted site; create markets from `/create` (or `/verdict/create` on GitHub Pages).
-- Legacy smoke markets are hidden on the home list; use **Use demo example** for Agentathon copy.
-
-## Explainer (static HTML)
-
-`docs/verdict-explainer.html` can be hosted separately (GitHub Pages artifact, S3, or `npx serve docs`) — it does not require the Next.js app.
+`docs/verdict-explainer.html` — static HTML, host separately if needed.

@@ -49,9 +49,11 @@ export function useMarketSummaries() {
     if (!factory) {
       setMarkets([]);
       setLoading(false);
+      setError(null);
       return;
     }
     setLoading(true);
+    setError(null);
     const count = (await publicClient.readContract({
       address: factory,
       abi: factoryAbi,
@@ -61,6 +63,7 @@ export function useMarketSummaries() {
     if (n === 0) {
       setMarkets([]);
       setLoading(false);
+      setError(null);
       return;
     }
     const addrs: Address[] = [];

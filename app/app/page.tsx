@@ -10,6 +10,7 @@ import { MarketCard } from "@/components/market-card";
 import { useWallet } from "@/hooks/useWallet";
 import { useMarketSummaries } from "@/hooks/useMarketSummaries";
 import { FACTORY_ADDRESS } from "@/lib/contracts";
+import { AGENTS_URL, BLOCKSCOUT_URL } from "@/lib/constants";
 
 export default function Home() {
   const router = useRouter();
@@ -79,8 +80,8 @@ export default function Home() {
 
       <footer className="relative z-10 flex justify-center gap-4 pb-12">
         {[
-          { href: "https://somnia-testnet.blockscout.com", label: "Blockscout", Icon: Globe },
-          { href: "https://agents.testnet.somnia.network", label: "Agents", Icon: ExternalLink },
+          { href: BLOCKSCOUT_URL, label: "Blockscout", Icon: Globe },
+          { href: AGENTS_URL, label: "Agents", Icon: ExternalLink },
           { href: "https://somnia.network", label: "Somnia", Icon: Link2 },
         ].map(({ href, label, Icon }) => (
           <a

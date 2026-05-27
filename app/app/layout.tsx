@@ -17,6 +17,13 @@ const instrumentSerif = Instrument_Serif({
 export const metadata: Metadata = {
   title: "Verdict — Somnia prediction markets",
   description: "Consensus-resolved YES/NO markets on Somnia Agentic L1",
+  metadataBase: process.env.VERCEL_URL
+    ? new URL(`https://${process.env.VERCEL_URL}`)
+    : undefined,
+  openGraph: {
+    title: "Verdict",
+    description: "Ask a question. Let the agent decide.",
+  },
 };
 
 export default function RootLayout({

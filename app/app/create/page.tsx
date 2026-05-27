@@ -7,6 +7,7 @@ import { somniaTestnet } from "@/lib/chain";
 import { FACTORY_ADDRESS, factoryAbi } from "@/lib/contracts";
 import { waitForMarketFromTx } from "@/lib/factory";
 import { DEMO_MARKET } from "@/lib/examples";
+import { blockscoutTxUrl } from "@/lib/constants";
 import { useWallet } from "@/hooks/useWallet";
 import { VerdictShell } from "@/components/verdict-shell";
 import { LiquidNav } from "@/components/liquid-nav";
@@ -171,7 +172,7 @@ export default function CreatePage() {
           <p className="mt-4 text-center text-xs">
             <a
               className="text-white/60 underline"
-              href={`https://somnia-testnet.blockscout.com/tx/${txHash}`}
+              href={blockscoutTxUrl(txHash)}
               target="_blank"
               rel="noreferrer"
             >

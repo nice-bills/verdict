@@ -96,3 +96,50 @@ Config example — `.cursor/mcp.json` in repo root or user config:
 - Use the optional Next.js UI unless the user asks
 - Call `resolve()` before deadline
 - Expect synchronous resolution on testnet — always wait/poll after resolve
+
+## Cursor Cloud specific instructions
+
+### Services overview
+
+| Service | How to run | Notes |
+|---------|-----------|-------|
+| **Forge tests** | `forge test -vv` | 9 unit tests using MockAgentPlatform; no network needed |
+| **Operator CLI** | `node operator/dist/cli.js <command>` | Requires `cd operator && npm install && npm run build` first |
+| **Local Anvil E2E** | `bash scripts/local-agent-e2e.sh` | Full create→stake→resolve→claim flow on local Anvil; no testnet STT needed |
+| **Next.js UI** | `cd app && pnpm dev` | Optional; needs `pnpm install` first |
+| **Testnet E2E** | `bash scripts/agent-e2e.sh` | Requires `PRIVATE_KEY` and `FACTORY_ADDRESS` in `.env` |
+
+### Foundry path
+
+Foundry binaries install to `~/.foundry/bin`. Ensure `PATH` includes this directory (`export PATH="$HOME/.foundry/bin:$PATH"`). The update script handles `foundryup` automatically.
+
+### Local testing without testnet secrets
+
+Run `forge test -vv` and `bash scripts/local-agent-e2e.sh` for full coverage without needing `PRIVATE_KEY` or `FACTORY_ADDRESS`. The local E2E script starts Anvil on port 8545, deploys a MockAgentPlatform + VerdictFactory, and exercises the full market lifecycle via the operator CLI.
+
+### Lint
+
+- Solidity: `forge fmt --check` (repo has minor formatting divergences from forge defaults — this is the existing state)
+- Next.js app: `cd app && npx eslint`
+
+### Build
+
+- Contracts: `forge build`
+- Operator: `cd operator && npm run build`
+- App: `cd app && pnpm build`
+
+### Somnia testnet deployment gotcha
+
+Somnia testnet rejects EIP-1559 (type-2) contract creation transactions. Use `--legacy` flag with `forge create`:
+
+```bash
+forge create --rpc-url "$SOMNIA_RPC_URL" --private-key "$PRIVATE_KEY" --legacy --broadcast \
+  src/VerdictFactory.sol:VerdictFactory \
+  --constructor-args 0x037Bb9C718F3f7fe5eCBDB0b600D607b52706776 12875401142070969085
+```
+
+The `forge script` deploy path (`script/Deploy.s.sol`) may fail with "Transaction Failure" (gas consumed = gas limit) unless legacy tx mode is forced.
+
+### pnpm build warnings
+
+The `app/` directory uses pnpm. On install you may see "Ignored build scripts" warnings for `sharp` and `unrs-resolver` — these are safe to ignore and do not affect functionality.

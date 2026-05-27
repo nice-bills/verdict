@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { type Address } from "viem";
 import { publicClient } from "@/lib/clients";
 import { FACTORY_ADDRESS, factoryAbi, marketAbi } from "@/lib/contracts";
+import { filterDisplayMarkets } from "@/lib/market-filters";
 
 export type MarketSummary = {
   address: Address;
@@ -72,7 +73,7 @@ export function useMarketSummaries() {
       addrs.push(addr);
     }
     const summaries = await Promise.all(addrs.map(loadSummary));
-    setMarkets(summaries.reverse());
+    setMarkets(filterDisplayMarkets(summaries.reverse()));
     setLoading(false);
   }, []);
 

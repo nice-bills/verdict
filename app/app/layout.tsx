@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
-import { CinematicBackground } from "@/components/cinematic-background";
 import "./globals.css";
 
 const inter = Inter({
@@ -11,12 +10,13 @@ const inter = Inter({
 const instrumentSerif = Instrument_Serif({
   variable: "--font-instrument-serif",
   subsets: ["latin"],
-  weight: "400",
+  weight: ["400"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
-  title: "Verdict",
-  description: "Consensus-resolved prediction markets on Somnia",
+  title: "Verdict — Somnia prediction markets",
+  description: "Consensus-resolved YES/NO markets on Somnia Agentic L1",
 };
 
 export default function RootLayout({
@@ -26,8 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${instrumentSerif.variable}`}>
-        <CinematicBackground />
+      <body className={`${inter.variable} ${instrumentSerif.variable} antialiased`}>
         {children}
       </body>
     </html>

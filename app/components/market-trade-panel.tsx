@@ -2,7 +2,7 @@
 
 import { formatEther } from "viem";
 import type { MarketSnapshot } from "@/hooks/useMarket";
-import { GlassButton, GlassPanel } from "@/components/glass";
+import { isLegacySmokeMarket } from "@/lib/market-filters";
 
 type MarketTradePanelProps = {
   snapshot: MarketSnapshot;
@@ -44,71 +44,98 @@ export function MarketTradePanel({
         ? "Ready to resolve"
         : `${Math.floor(secondsLeft / 60)}m ${secondsLeft % 60}s`;
 
+  const legacy = isLegacySmokeMarket(snapshot.question);
+
   return (
-    <GlassPanel className="trade-panel form-panel">
+    <div className="liquid-glass rounded-2xl p-6 md:p-8">
+      {legacy && (
+        <p className="mb-4 rounded-xl bg-amber-500/15 px-4 py-3 text-center text-sm text-amber-100">
+          This is an old operator smoke-test market.{" "}
+          <a href="/create" className="underline">
+            Create a new market
+          </a>{" "}
+          for your demo.
+        </p>
+      )}
+
       <div className="pool-track" role="presentation">
         <div className="pool-track__yes" style={{ width: `${yesPct}%` }} />
         <div className="pool-track__no" />
       </div>
-      <div className="trade-panel__pool-labels">
+      <div className="mt-2 flex justify-between text-xs text-white/50">
         <span>YES {formatEther(snapshot.totalYesStake)} STT</span>
-        <span>{yesPct}% on YES</span>
+        <span>{yesPct}%</span>
         <span>NO {formatEther(snapshot.totalNoStake)} STT</span>
       </div>
 
-      <dl className="trade-panel__meta">
+      <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
         <div>
-          <dt>Deadline</dt>
-          <dd>{formatDeadline(snapshot.deadline)}</dd>
+          <dt className="text-white/50">Deadline</dt>
+          <dd className="mt-1 text-white">{formatDeadline(snapshot.deadline)}</dd>
         </div>
         <div>
-          <dt>Time left</dt>
-          <dd>{timeLabel}</dd>
+          <dt className="text-white/50">Time left</dt>
+          <dd className="mt-1 text-white">{timeLabel}</dd>
         </div>
       </dl>
 
       {!account && (
-        <p className="trade-panel__hint">Connect your wallet to stake, resolve, or claim.</p>
+        <p className="mt-6 text-center text-sm text-white/60">
+          Connect your wallet to stake, resolve, or claim.
+        </p>
       )}
 
       {snapshot.state === 0 && (
-        <div className="stake-row">
-          <label className="glass-label stake-row__amount">
-            Amount (STT)
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-wide text-white/50">
+            STT
             <input
               type="number"
               min={MIN_STAKE}
               step="0.001"
-              className="glass-input"
+              className="liquid-glass w-24 rounded-full px-4 py-2 text-center text-sm text-white"
               value={stakeAmount}
               onChange={(e) => onStakeAmount(e.target.value)}
               disabled={!account || busy}
             />
           </label>
-          <GlassButton variant="yes" disabled={!account || busy} onClick={() => onStake(true)}>
+          <button
+            type="button"
+            disabled={!account || busy}
+            onClick={() => onStake(true)}
+            className="liquid-glass rounded-full px-5 py-2 text-sm text-green-300 hover:bg-white/5 disabled:opacity-40"
+          >
             Stake YES
-          </GlassButton>
-          <GlassButton variant="no" disabled={!account || busy} onClick={() => onStake(false)}>
+          </button>
+          <button
+            type="button"
+            disabled={!account || busy}
+            onClick={() => onStake(false)}
+            className="liquid-glass rounded-full px-5 py-2 text-sm text-red-300 hover:bg-white/5 disabled:opacity-40"
+          >
             Stake NO
-          </GlassButton>
+          </button>
         </div>
       )}
 
-      <div className="trade-panel__actions">
-        <GlassButton
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <button
+          type="button"
           disabled={!account || busy || snapshot.state !== 0 || !pastDeadline}
           onClick={onResolve}
+          className="liquid-glass rounded-full px-6 py-2 text-sm text-white hover:bg-white/5 disabled:opacity-40"
         >
           Resolve · {formatEther(snapshot.resolveDeposit)} STT
-        </GlassButton>
-        <GlassButton
-          variant="ghost"
+        </button>
+        <button
+          type="button"
           disabled={!account || busy || snapshot.state !== 2}
           onClick={onClaim}
+          className="liquid-glass rounded-full px-6 py-2 text-sm text-white/70 hover:bg-white/5 disabled:opacity-40"
         >
           Claim payout
-        </GlassButton>
+        </button>
       </div>
-    </GlassPanel>
+    </div>
   );
 }

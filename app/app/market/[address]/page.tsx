@@ -9,10 +9,11 @@ import { marketAbi, OUTCOME_LABELS, STATE_LABELS } from "@/lib/contracts";
 import { publicClient } from "@/lib/clients";
 import { useWallet } from "@/hooks/useWallet";
 import { useMarket } from "@/hooks/useMarket";
-import { SiteNav } from "@/components/site-nav";
+import { VerdictShell } from "@/components/verdict-shell";
+import { LiquidNav } from "@/components/liquid-nav";
 import { WalletBanner } from "@/components/wallet-banner";
 import { MarketTradePanel } from "@/components/market-trade-panel";
-import { GlassPanel } from "@/components/glass";
+import { isLegacySmokeMarket } from "@/lib/market-filters";
 
 const MIN_STAKE = "0.001";
 
@@ -114,34 +115,42 @@ export default function MarketPage() {
       : 0;
 
   return (
-    <>
-      <SiteNav account={account} onConnect={handleConnect} />
+    <VerdictShell>
+      <LiquidNav account={account} onConnect={handleConnect} />
 
-      <main className="page-gutter page-market">
-        <Link href="/" className="back-link fade-rise">
+      <main className="app-section mx-auto w-full max-w-lg flex-1 px-6 py-12">
+        <Link href="/" className="text-sm text-white/60 hover:text-white">
           ← Markets
         </Link>
 
         <WalletBanner connected={Boolean(account)} onConnect={handleConnect} />
 
         {!snapshot && !loadError && (
-          <p className="page-lede fade-rise">Loading market…</p>
+          <p className="mt-8 text-sm text-white/60">Loading market…</p>
         )}
 
         {snapshot && (
           <>
-            <header className="market-header fade-rise fade-rise-1">
-              <p className="market-header__status">
+            <header className="mt-8 text-center">
+              <p className="text-xs uppercase tracking-widest text-white/50">
                 {STATE_LABELS[snapshot.state]}
-                {snapshot.state === 2
-                  ? ` · ${OUTCOME_LABELS[snapshot.outcome]}`
-                  : ""}
+                {snapshot.state === 2 ? ` · ${OUTCOME_LABELS[snapshot.outcome]}` : ""}
               </p>
-              <h1 className="display-serif market-header__question">{snapshot.question}</h1>
-              <p className="address-chip market-header__addr">{market}</p>
+              <h1
+                className="font-instrument mt-4 text-3xl leading-tight text-white md:text-4xl"
+                style={{ fontFamily: "'Instrument Serif', serif" }}
+              >
+                {snapshot.question}
+              </h1>
+              {isLegacySmokeMarket(snapshot.question) && (
+                <p className="mt-3 text-sm text-amber-200/90">
+                  Legacy test market — hidden from the home list. Create a new one for your demo.
+                </p>
+              )}
+              <p className="mt-4 break-all text-xs text-white/40">{market}</p>
             </header>
 
-            <div className="fade-rise fade-rise-2">
+            <div className="mt-8">
               <MarketTradePanel
                 snapshot={snapshot}
                 account={account}
@@ -158,23 +167,23 @@ export default function MarketPage() {
             </div>
 
             {snapshot.reasoning && (
-              <GlassPanel className="reasoning-panel form-panel fade-rise fade-rise-3">
-                <p className="glass-label">Agent reasoning</p>
-                <p className="reasoning-panel__text">{snapshot.reasoning}</p>
+              <div className="liquid-glass mt-6 rounded-2xl p-6">
+                <p className="text-xs uppercase tracking-wide text-white/50">Agent reasoning</p>
+                <p className="mt-4 text-sm leading-relaxed text-white/85">{snapshot.reasoning}</p>
                 <a
-                  className="reasoning-panel__link"
+                  className="mt-4 inline-block text-sm text-white underline"
                   href="https://agents.testnet.somnia.network"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  View on Somnia agent explorer →
+                  Somnia agent receipts →
                 </a>
-              </GlassPanel>
+              </div>
             )}
 
             {snapshot.state === 1 && (
-              <p className="resolving-note fade-rise fade-rise-3">
-                Resolving on Somnia — usually 30–120 seconds. This page auto-refreshes.
+              <p className="mt-4 text-center text-sm text-white/70">
+                Resolving on Somnia — usually 30–120 seconds.
               </p>
             )}
           </>
@@ -182,7 +191,7 @@ export default function MarketPage() {
 
         {lastTx && (
           <a
-            className="form-meta form-meta--block"
+            className="mt-6 block text-center text-xs text-white/60 underline"
             href={`https://somnia-testnet.blockscout.com/tx/${lastTx}`}
             target="_blank"
             rel="noreferrer"
@@ -191,8 +200,12 @@ export default function MarketPage() {
           </a>
         )}
 
-        {error && <p className="banner-error">{error}</p>}
+        {error && (
+          <p className="mt-6 rounded-xl bg-red-500/15 px-4 py-3 text-center text-sm text-red-200">
+            {error}
+          </p>
+        )}
       </main>
-    </>
+    </VerdictShell>
   );
 }

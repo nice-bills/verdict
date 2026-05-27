@@ -15,17 +15,18 @@ export function MarketCard({ market }: { market: MarketSummary }) {
   const yesPct = Math.round((yes / total) * 100);
 
   return (
-    <Link href={`/market/${market.address}`} className="market-card glass-panel">
-      <div className="market-card__top">
-        <span
-          className={`market-card__status ${market.state === 0 ? "market-card__status--open" : "market-card__status--resolved"}`}
-        >
-          {statusLabel(market)}
-        </span>
-        <span className="market-card__pool">{yesPct}% YES</span>
+    <Link href={`/market/${market.address}`} className="market-card liquid-glass rounded-2xl">
+      <div className="flex justify-between text-xs uppercase tracking-wider text-white/50">
+        <span>{statusLabel(market)}</span>
+        <span>{yesPct}% YES</span>
       </div>
-      <h2 className="market-card__question display-serif">{market.question}</h2>
-      <p className="market-card__stakes">
+      <h2
+        className="font-instrument mt-4 text-xl leading-snug text-white"
+        style={{ fontFamily: "'Instrument Serif', serif" }}
+      >
+        {market.question}
+      </h2>
+      <p className="mt-3 text-xs text-white/50">
         {formatEther(market.totalYesStake)} / {formatEther(market.totalNoStake)} STT pooled
       </p>
     </Link>

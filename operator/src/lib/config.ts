@@ -36,8 +36,16 @@ export function getPrivateKey(): Hex {
   return pk.startsWith("0x") ? (pk as Hex) : (`0x${pk}` as Hex);
 }
 
+function readFactoryFromEnv(): string | undefined {
+  const raw = process.env.FACTORY_ADDRESS ?? process.env.NEXT_PUBLIC_FACTORY_ADDRESS;
+  if (!raw || raw === "0x" || raw.toLowerCase() === "null") {
+    return undefined;
+  }
+  return raw;
+}
+
 export function getFactoryAddress(): Address {
-  const addr = process.env.FACTORY_ADDRESS ?? process.env.NEXT_PUBLIC_FACTORY_ADDRESS;
+  const addr = readFactoryFromEnv();
   if (!addr) {
     throw new Error("FACTORY_ADDRESS missing in .env — deploy factory first");
   }
@@ -46,7 +54,7 @@ export function getFactoryAddress(): Address {
 
 export function getConfigStatus() {
   const pk = process.env.PRIVATE_KEY;
-  const factory = process.env.FACTORY_ADDRESS ?? process.env.NEXT_PUBLIC_FACTORY_ADDRESS;
+  const factory = readFactoryFromEnv();
   return {
     repoRoot: REPO_ROOT,
     rpcUrl: RPC_URL,

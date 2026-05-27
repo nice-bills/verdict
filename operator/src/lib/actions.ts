@@ -11,6 +11,10 @@ import {
   waitReceipt,
 } from "./client.js";
 import { MIN_STAKE_WEI, OUTCOME_LABELS, STATE_LABELS } from "./contracts.js";
+import { formatActionError, runAction } from "./errors.js";
+import { parseAmountStt } from "./validate.js";
+
+const RESOLVED_STATE = 2;
 
 export type JsonResult = Record<string, unknown>;
 
@@ -45,34 +49,36 @@ export async function actionCreateMarket(params: {
   deadlineMinutes?: number;
   deadlineUnix?: number;
 }): Promise<JsonResult> {
-  const deadline =
-    params.deadlineUnix ??
-    Math.floor(Date.now() / 1000) + (params.deadlineMinutes ?? 60) * 60;
+  return runAction(async () => {
+    const deadline =
+      params.deadlineUnix ??
+      Math.floor(Date.now() / 1000) + (params.deadlineMinutes ?? 60) * 60;
 
-  const wallet = getWalletClient();
-  const factory = getFactoryAddress();
+    const wallet = getWalletClient();
+    const factory = getFactoryAddress();
 
-  const hash = await wallet.writeContract({
-    address: factory,
-    abi: factoryAbi,
-    functionName: "createMarket",
-    args: [params.question, params.sourceUrl, params.resolvePrompt, BigInt(deadline)],
+    const hash = await wallet.writeContract({
+      address: factory,
+      abi: factoryAbi,
+      functionName: "createMarket",
+      args: [params.question, params.sourceUrl, params.resolvePrompt, BigInt(deadline)],
+    });
+
+    const receipt = await waitReceipt(hash);
+    const market = marketFromReceipt(receipt);
+    if (!market) {
+      return { ok: false, error: "MarketCreated event not found", ...txLinks(hash) };
+    }
+
+    return {
+      ok: true,
+      market,
+      deadline,
+      factory,
+      explorerMarket: `${BLOCK_EXPLORER}/address/${market}`,
+      ...txLinks(hash),
+    };
   });
-
-  const receipt = await waitReceipt(hash);
-  const market = marketFromReceipt(receipt);
-  if (!market) {
-    return { ok: false, error: "MarketCreated event not found", ...txLinks(hash) };
-  }
-
-  return {
-    ok: true,
-    market,
-    deadline,
-    factory,
-    explorerMarket: `${BLOCK_EXPLORER}/address/${market}`,
-    ...txLinks(hash),
-  };
 }
 
 export async function actionStake(params: {
@@ -80,77 +86,106 @@ export async function actionStake(params: {
   isYes: boolean;
   amountStt?: string;
 }): Promise<JsonResult> {
-  const value = params.amountStt ? parseEther(params.amountStt) : parseEther("0.01");
+  let value: bigint;
+  try {
+    value = parseEther(parseAmountStt(params.amountStt));
+  } catch (e) {
+    return { ok: false, error: formatActionError(e) };
+  }
   if (value < MIN_STAKE_WEI) {
     return { ok: false, error: `Minimum stake is ${formatEther(MIN_STAKE_WEI)} STT` };
   }
 
-  const wallet = getWalletClient();
-  const hash = await wallet.writeContract({
-    address: params.market,
-    abi: marketAbi,
-    functionName: "stake",
-    args: [params.isYes],
-    value,
+  return runAction(async () => {
+    const wallet = getWalletClient();
+    const hash = await wallet.writeContract({
+      address: params.market,
+      abi: marketAbi,
+      functionName: "stake",
+      args: [params.isYes],
+      value,
+    });
+
+    await waitReceipt(hash);
+    let marketStatus: Record<string, unknown> | undefined;
+    try {
+      const status = await actionStatus({ market: params.market });
+      marketStatus = status.market as Record<string, unknown>;
+    } catch {
+      /* tx succeeded; status read optional */
+    }
+
+    return {
+      ok: true,
+      side: params.isYes ? "YES" : "NO",
+      amountStt: formatEther(value),
+      ...txLinks(hash),
+      ...(marketStatus ? { market: marketStatus } : {}),
+    };
   });
-
-  await waitReceipt(hash);
-  const status = await actionStatus({ market: params.market });
-
-  return {
-    ok: true,
-    side: params.isYes ? "YES" : "NO",
-    amountStt: formatEther(value),
-    ...txLinks(hash),
-    market: status.market,
-  };
 }
 
 export async function actionResolve(params: { market: Address }): Promise<JsonResult> {
-  const publicClient = getPublicClient();
-  const deposit = await publicClient.readContract({
-    address: params.market,
-    abi: marketAbi,
-    functionName: "requiredResolveDeposit",
+  return runAction(async () => {
+    const publicClient = getPublicClient();
+    const deposit = await publicClient.readContract({
+      address: params.market,
+      abi: marketAbi,
+      functionName: "requiredResolveDeposit",
+    });
+
+    const wallet = getWalletClient();
+    const hash = await wallet.writeContract({
+      address: params.market,
+      abi: marketAbi,
+      functionName: "resolve",
+      value: deposit as bigint,
+    });
+
+    await waitReceipt(hash);
+    let marketStatus: Record<string, unknown> | undefined;
+    try {
+      const status = await actionStatus({ market: params.market });
+      marketStatus = status.market as Record<string, unknown>;
+    } catch {
+      /* optional */
+    }
+
+    return {
+      ok: true,
+      depositStt: formatEther(deposit as bigint),
+      note: "Somnia agents are async on testnet — poll with `verdict status` or `verdict wait` (30–120s typical)",
+      agentReceiptsUrl: AGENT_RECEIPTS_URL,
+      ...txLinks(hash),
+      ...(marketStatus ? { market: marketStatus } : {}),
+    };
   });
-
-  const wallet = getWalletClient();
-  const hash = await wallet.writeContract({
-    address: params.market,
-    abi: marketAbi,
-    functionName: "resolve",
-    value: deposit as bigint,
-  });
-
-  const receipt = await waitReceipt(hash);
-  const status = await actionStatus({ market: params.market });
-
-  return {
-    ok: true,
-    depositStt: formatEther(deposit as bigint),
-    note: "Somnia agents are async on testnet — poll with `verdict status` or `verdict wait` (30–120s typical)",
-    agentReceiptsUrl: AGENT_RECEIPTS_URL,
-    ...txLinks(hash),
-    market: status.market,
-  };
 }
 
 export async function actionClaim(params: { market: Address }): Promise<JsonResult> {
-  const wallet = getWalletClient();
-  const hash = await wallet.writeContract({
-    address: params.market,
-    abi: marketAbi,
-    functionName: "claim",
+  return runAction(async () => {
+    const wallet = getWalletClient();
+    const hash = await wallet.writeContract({
+      address: params.market,
+      abi: marketAbi,
+      functionName: "claim",
+    });
+
+    await waitReceipt(hash);
+    let marketStatus: Record<string, unknown> | undefined;
+    try {
+      const status = await actionStatus({ market: params.market });
+      marketStatus = status.market as Record<string, unknown>;
+    } catch {
+      /* optional */
+    }
+
+    return {
+      ok: true,
+      ...txLinks(hash),
+      ...(marketStatus ? { market: marketStatus } : {}),
+    };
   });
-
-  await waitReceipt(hash);
-  const status = await actionStatus({ market: params.market });
-
-  return {
-    ok: true,
-    ...txLinks(hash),
-    market: status.market,
-  };
 }
 
 export async function actionStatus(params: { market: Address }): Promise<JsonResult> {
@@ -212,7 +247,7 @@ export async function actionWait(params: {
   while ((Date.now() - start) / 1000 < timeout) {
     const status = await actionStatus({ market: params.market });
     const stateRaw = (status.market as { stateRaw: number }).stateRaw;
-    if (stateRaw === 2) {
+    if (stateRaw === RESOLVED_STATE) {
       return {
         ok: true,
         resolved: true,
@@ -226,11 +261,43 @@ export async function actionWait(params: {
 
   const status = await actionStatus({ market: params.market });
   return {
-    ok: true,
+    ok: false,
     resolved: false,
     timedOut: true,
+    error: `Timed out after ${timeout}s waiting for resolution`,
     waitedSeconds: timeout,
     market: status.market,
     agentReceiptsUrl: AGENT_RECEIPTS_URL,
   };
+}
+
+export async function actionListMarkets(): Promise<JsonResult> {
+  return runAction(async () => {
+    const publicClient = getPublicClient();
+    const factory = getFactoryAddress();
+    const count = (await publicClient.readContract({
+      address: factory,
+      abi: factoryAbi,
+      functionName: "marketCount",
+    })) as bigint;
+
+    const markets: { index: number; address: Address }[] = [];
+    for (let i = 0n; i < count; i++) {
+      const address = (await publicClient.readContract({
+        address: factory,
+        abi: factoryAbi,
+        functionName: "getMarket",
+        args: [i],
+      })) as Address;
+      markets.push({ index: Number(i), address });
+    }
+
+    return {
+      ok: true,
+      factory,
+      count: Number(count),
+      markets,
+      explorerFactory: `${BLOCK_EXPLORER}/address/${factory}`,
+    };
+  });
 }

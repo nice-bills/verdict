@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ExternalLink, Globe, Link2 } from "lucide-react";
 import { VerdictShell } from "@/components/verdict-shell";
@@ -14,12 +15,14 @@ export default function Home() {
   const router = useRouter();
   const { account, connect } = useWallet();
   const { markets, loading, error, refresh } = useMarketSummaries();
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   async function handleConnect() {
+    setConnectError(null);
     try {
       await connect();
-    } catch {
-      /* ignore */
+    } catch (e) {
+      setConnectError(e instanceof Error ? e.message : String(e));
     }
   }
 
@@ -141,9 +144,15 @@ export default function Home() {
             </div>
           </div>
 
+          {connectError && (
+            <p className="mb-6 rounded-2xl bg-red-500/10 px-4 py-3 text-center text-sm text-red-200">
+              {connectError}
+            </p>
+          )}
+
           {!FACTORY_ADDRESS && (
             <p className="mb-6 rounded-2xl bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200">
-              Set NEXT_PUBLIC_FACTORY_ADDRESS in app/.env.local
+              Factory address missing — check deployments/shannon.json or set NEXT_PUBLIC_FACTORY_ADDRESS
             </p>
           )}
 

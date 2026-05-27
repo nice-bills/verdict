@@ -5,6 +5,7 @@ import { type Address } from "viem";
 import { publicClient } from "@/lib/clients";
 import { FACTORY_ADDRESS, factoryAbi, marketAbi } from "@/lib/contracts";
 import { filterDisplayMarkets } from "@/lib/market-filters";
+import { POLL_MARKETS_MS } from "@/lib/constants";
 
 export type MarketSummary = {
   address: Address;
@@ -86,7 +87,7 @@ export function useMarketSummaries() {
       });
     const id = setInterval(() => {
       refresh().catch(() => {});
-    }, 12_000);
+    }, POLL_MARKETS_MS);
     return () => clearInterval(id);
   }, [refresh]);
 

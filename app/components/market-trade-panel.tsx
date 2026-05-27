@@ -2,7 +2,7 @@
 
 import { formatEther } from "viem";
 import type { MarketSnapshot } from "@/hooks/useMarket";
-import { isLegacySmokeMarket } from "@/lib/market-filters";
+import { MIN_STAKE_STT } from "@/lib/constants";
 
 type MarketTradePanelProps = {
   snapshot: MarketSnapshot;
@@ -17,8 +17,6 @@ type MarketTradePanelProps = {
   onClaim: () => void;
   formatDeadline: (ts: bigint) => string;
 };
-
-const MIN_STAKE = "0.001";
 
 export function MarketTradePanel({
   snapshot,
@@ -44,19 +42,8 @@ export function MarketTradePanel({
         ? "Ready to resolve"
         : `${Math.floor(secondsLeft / 60)}m ${secondsLeft % 60}s`;
 
-  const legacy = isLegacySmokeMarket(snapshot.question);
-
   return (
     <div className="liquid-glass rounded-2xl p-6 md:p-8">
-      {legacy && (
-        <p className="mb-4 rounded-xl bg-amber-500/15 px-4 py-3 text-center text-sm text-amber-100">
-          This is an old operator smoke-test market.{" "}
-          <a href="/create" className="underline">
-            Create a new market
-          </a>{" "}
-          for your demo.
-        </p>
-      )}
 
       <div className="pool-track" role="presentation">
         <div className="pool-track__yes" style={{ width: `${yesPct}%` }} />
@@ -91,7 +78,7 @@ export function MarketTradePanel({
             STT
             <input
               type="number"
-              min={MIN_STAKE}
+              min={MIN_STAKE_STT}
               step="0.001"
               className="liquid-glass w-24 rounded-full px-4 py-2 text-center text-sm text-white"
               value={stakeAmount}

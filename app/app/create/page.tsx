@@ -93,6 +93,13 @@ export default function CreatePage() {
 
         <WalletBanner connected={Boolean(account)} onConnect={handleConnect} />
 
+        {!FACTORY_ADDRESS && (
+          <p className="mt-6 rounded-2xl bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200">
+            Factory address missing — cannot create markets. Check deployments/shannon.json or set
+            NEXT_PUBLIC_FACTORY_ADDRESS.
+          </p>
+        )}
+
         <form
           className="liquid-glass mt-8 space-y-6 rounded-2xl p-6 md:p-8"
           onSubmit={(e) => {

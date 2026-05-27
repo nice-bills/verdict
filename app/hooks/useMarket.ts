@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { type Address } from "viem";
 import { publicClient } from "@/lib/clients";
 import { marketAbi } from "@/lib/contracts";
+import { POLL_MARKET_MS } from "@/lib/constants";
 
 export type MarketSnapshot = {
   question: string;
@@ -80,7 +81,7 @@ export function useMarket(market: Address) {
       });
     const id = setInterval(() => {
       refresh().catch(() => {});
-    }, 8000);
+    }, POLL_MARKET_MS);
     return () => {
       cancelled = true;
       clearInterval(id);

@@ -7,11 +7,13 @@ import {
   actionClaim,
   actionConfig,
   actionCreateMarket,
+  actionListMarkets,
   actionResolve,
   actionStake,
   actionStatus,
   actionWait,
 } from "./lib/actions.js";
+import { formatActionError } from "./lib/errors.js";
 
 const addressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid address");
 
@@ -26,6 +28,14 @@ function jsonText(data: unknown) {
   };
 }
 
+async function safeTool<T>(fn: () => Promise<T>): Promise<ReturnType<typeof jsonText>> {
+  try {
+    return jsonText(await fn());
+  } catch (e) {
+    return jsonText({ ok: false, error: formatActionError(e) });
+  }
+}
+
 const server = new McpServer({
   name: "verdict",
   version: "0.1.0",
@@ -35,7 +45,14 @@ server.tool(
   "verdict_get_config",
   "Check Verdict operator env: RPC, factory address, whether PRIVATE_KEY is set. Run before other tools.",
   {},
-  async () => jsonText(await actionConfig())
+  async () => safeTool(() => actionConfig())
+);
+
+server.tool(
+  "verdict_list_markets",
+  "List all VerdictMarket addresses created by the factory.",
+  {},
+  async () => safeTool(() => actionListMarkets())
 );
 
 server.tool(
@@ -49,8 +66,8 @@ server.tool(
     deadlineUnix: z.number().int().positive().optional().describe("Unix deadline (overrides deadlineMinutes)"),
   },
   async (args) =>
-    jsonText(
-      await actionCreateMarket({
+    safeTool(() =>
+      actionCreateMarket({
         question: args.question,
         sourceUrl: args.sourceUrl,
         resolvePrompt: args.resolvePrompt,
@@ -69,8 +86,8 @@ server.tool(
     amountStt: z.string().optional().describe("Stake in STT (default 0.01)"),
   },
   async (args) =>
-    jsonText(
-      await actionStake({
+    safeTool(() =>
+      actionStake({
         market: args.market as Address,
         isYes: args.side === "YES",
         amountStt: args.amountStt,
@@ -84,7 +101,7 @@ server.tool(
   {
     market: addressSchema.describe("VerdictMarket contract address"),
   },
-  async (args) => jsonText(await actionResolve({ market: args.market as Address }))
+  async (args) => safeTool(() => actionResolve({ market: args.market as Address }))
 );
 
 server.tool(
@@ -93,7 +110,7 @@ server.tool(
   {
     market: addressSchema.describe("VerdictMarket contract address"),
   },
-  async (args) => jsonText(await actionStatus({ market: args.market as Address }))
+  async (args) => safeTool(() => actionStatus({ market: args.market as Address }))
 );
 
 server.tool(
@@ -102,7 +119,7 @@ server.tool(
   {
     market: addressSchema.describe("VerdictMarket contract address"),
   },
-  async (args) => jsonText(await actionStatus({ market: args.market as Address }))
+  async (args) => safeTool(() => actionStatus({ market: args.market as Address }))
 );
 
 server.tool(
@@ -114,8 +131,8 @@ server.tool(
     pollSeconds: z.number().int().positive().optional(),
   },
   async (args) =>
-    jsonText(
-      await actionWait({
+    safeTool(() =>
+      actionWait({
         market: args.market as Address,
         timeoutSeconds: args.timeoutSeconds,
         pollSeconds: args.pollSeconds,
@@ -129,7 +146,7 @@ server.tool(
   {
     market: addressSchema.describe("VerdictMarket contract address"),
   },
-  async (args) => jsonText(await actionClaim({ market: args.market as Address }))
+  async (args) => safeTool(() => actionClaim({ market: args.market as Address }))
 );
 
 async function main() {

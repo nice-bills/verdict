@@ -6,7 +6,7 @@ Next.js frontend for Somnia testnet markets. Config defaults from `config/shanno
 pnpm install && pnpm dev
 ```
 
-Optional overrides: copy `.env.example` → `.env.local`.
+Optional overrides: copy `env.example` → `.env.local`.
 
 **Deploy:** [../docs/HOSTING.md](../docs/HOSTING.md) (Vercel or GitHub Pages).
 

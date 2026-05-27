@@ -4,6 +4,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# shellcheck disable=SC1091
+source "$ROOT/scripts/demo-defaults.sh"
+
 run_cli() { node "$ROOT/operator/dist/cli.js" "$@"; }
 export VERDICT_JSON=1
 
@@ -15,15 +18,12 @@ set +a
 [[ -n "${FACTORY_ADDRESS:-}" ]] || { echo "Run ./scripts/setup-operator.sh first"; exit 1; }
 
 DEADLINE_MIN="${1:-2}"
-QUESTION="${QUESTION:-Does the page contain VERDICT?}"
-URL="${DEMO_URL:-https://raw.githubusercontent.com/github/explore/main/README.md}"
-RULE="${RULE:-Return YES if the text contains VERDICT (case insensitive), else NO.}"
 
 echo "==> config"
 run_cli config
 
 echo "==> create market"
-CREATE=$(run_cli create -q "$QUESTION" -u "$URL" -r "$RULE" -m "$DEADLINE_MIN")
+CREATE=$(run_cli create -q "$DEMO_QUESTION" -u "$DEMO_URL" -r "$DEMO_RULE" -m "$DEADLINE_MIN")
 echo "$CREATE"
 MARKET=$(echo "$CREATE" | jq -r '.market')
 [[ "$MARKET" != null && -n "$MARKET" ]] || { echo "create failed"; exit 1; }

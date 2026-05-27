@@ -1,21 +1,27 @@
 #!/usr/bin/env node
+import { createRequire } from "node:module";
 import { Command } from "commander";
-import type { Address } from "viem";
 import {
   actionClaim,
   actionConfig,
   actionCreateMarket,
+  actionListMarkets,
   actionResolve,
   actionStake,
   actionStatus,
   actionWait,
 } from "./lib/actions.js";
 import { emit, emitError } from "./lib/output.js";
+import { parseMarketAddress, parsePositiveInt } from "./lib/validate.js";
+
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json") as { version: string };
 
 const program = new Command();
 
 program
   .name("verdict")
+  .version(version)
   .description("Operator CLI for Verdict markets on Somnia (JSON by default for agents)")
   .option("--json", "Force JSON output")
   .hook("preAction", () => {
@@ -51,8 +57,12 @@ program
         question: opts.question,
         sourceUrl: opts.url,
         resolvePrompt: opts.rule,
-        deadlineMinutes: opts.deadline ? undefined : Number(opts.minutes),
-        deadlineUnix: opts.deadline ? Number(opts.deadline) : undefined,
+        deadlineMinutes: opts.deadline
+          ? undefined
+          : parsePositiveInt(opts.minutes, "minutes", 60),
+        deadlineUnix: opts.deadline
+          ? parsePositiveInt(opts.deadline, "deadline", 0)
+          : undefined,
       });
       emit(
         r,
@@ -83,7 +93,7 @@ program
     }
     try {
       const r = await actionStake({
-        market: opts.market as Address,
+        market: parseMarketAddress(opts.market),
         isYes: Boolean(opts.yes),
         amountStt: opts.amount,
       });
@@ -99,7 +109,7 @@ program
   .requiredOption("--market <address>", "VerdictMarket address")
   .action(async (opts) => {
     try {
-      const r = await actionResolve({ market: opts.market as Address });
+      const r = await actionResolve({ market: parseMarketAddress(opts.market) });
       emit(r, r.ok ? `Resolve submitted. ${r.note}` : `Failed: ${r.error}`);
     } catch (e) {
       emitError(e instanceof Error ? e.message : String(e));
@@ -112,7 +122,7 @@ program
   .requiredOption("--market <address>", "VerdictMarket address")
   .action(async (opts) => {
     try {
-      const r = await actionClaim({ market: opts.market as Address });
+      const r = await actionClaim({ market: parseMarketAddress(opts.market) });
       emit(r, r.ok ? `Claim tx: ${r.explorerTx}` : `Failed: ${r.error}`);
     } catch (e) {
       emitError(e instanceof Error ? e.message : String(e));
@@ -125,7 +135,7 @@ program
   .requiredOption("--market <address>", "VerdictMarket address")
   .action(async (opts) => {
     try {
-      const r = await actionStatus({ market: opts.market as Address });
+      const r = await actionStatus({ market: parseMarketAddress(opts.market) });
       const m = r.market as Record<string, unknown>;
       emit(
         r,
@@ -145,15 +155,34 @@ program
   .action(async (opts) => {
     try {
       const r = await actionWait({
-        market: opts.market as Address,
-        timeoutSeconds: Number(opts.timeout),
-        pollSeconds: Number(opts.poll),
+        market: parseMarketAddress(opts.market),
+        timeoutSeconds: parsePositiveInt(opts.timeout, "timeout", 180),
+        pollSeconds: parsePositiveInt(opts.poll, "poll", 5),
       });
       emit(
         r,
         r.resolved
           ? `Resolved: ${(r.market as { outcome: string }).outcome}`
           : `Timed out after ${r.waitedSeconds}s — check ${r.agentReceiptsUrl}`
+      );
+      if (!r.ok) process.exitCode = 1;
+    } catch (e) {
+      emitError(e instanceof Error ? e.message : String(e));
+    }
+  });
+
+program
+  .command("markets")
+  .alias("list")
+  .description("List markets deployed by the factory")
+  .action(async () => {
+    try {
+      const r = await actionListMarkets();
+      emit(
+        r,
+        r.ok
+          ? `Factory ${r.factory}: ${r.count} market(s)`
+          : `Failed: ${r.error}`
       );
     } catch (e) {
       emitError(e instanceof Error ? e.message : String(e));

@@ -14,8 +14,7 @@ import { LiquidNav } from "@/components/liquid-nav";
 import { WalletBanner } from "@/components/wallet-banner";
 import { MarketTradePanel } from "@/components/market-trade-panel";
 import { isLegacySmokeMarket } from "@/lib/market-filters";
-
-const MIN_STAKE = "0.001";
+import { MIN_STAKE_STT, POLL_MARKET_MS, blockscoutTxUrl } from "@/lib/constants";
 
 function formatDeadline(ts: bigint) {
   if (ts <= BigInt(0)) return "—";
@@ -38,7 +37,7 @@ export function MarketPageClient() {
     const id = setInterval(() => {
       setNow(Math.floor(Date.now() / 1000));
       if (snapshot?.state === 1) refresh().catch(() => {});
-    }, 5000);
+    }, POLL_MARKET_MS);
     return () => clearInterval(id);
   }, [refresh, snapshot?.state]);
 
@@ -65,9 +64,9 @@ export function MarketPageClient() {
       let hash: Hash;
       const base = { chain: somniaTestnet, account } as const;
       if (fn === "stake") {
-        const amount = parseEther(stakeAmount || MIN_STAKE);
-        if (amount < parseEther(MIN_STAKE)) {
-          throw new Error(`Minimum stake is ${MIN_STAKE} STT`);
+        const amount = parseEther(stakeAmount || MIN_STAKE_STT);
+        if (amount < parseEther(MIN_STAKE_STT)) {
+          throw new Error(`Minimum stake is ${MIN_STAKE_STT} STT`);
         }
         hash = await wallet.writeContract({
           ...base,
@@ -192,7 +191,7 @@ export function MarketPageClient() {
         {lastTx && (
           <a
             className="mt-6 block text-center text-xs text-white/60 underline"
-            href={`https://somnia-testnet.blockscout.com/tx/${lastTx}`}
+            href={blockscoutTxUrl(lastTx)}
             target="_blank"
             rel="noreferrer"
           >

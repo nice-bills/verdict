@@ -20,10 +20,10 @@ node operator/dist/cli.js config
 
 # Create market
 node operator/dist/cli.js create \
-  -q "Does the page contain VERDICT?" \
-  -u "https://example.com" \
-  -r "Return YES if the text contains VERDICT (case insensitive), else NO." \
-  -m 2
+  -q "Will Shannon testnet exceed 2 million transactions by June 2026?" \
+  -u "https://somnia-testnet.blockscout.com" \
+  -r "Use Blockscout network stats. Return YES if total transactions exceed 2,000,000, else NO. Return INVALID if stats are unavailable." \
+  -m 5
 
 # Stake / resolve / wait / claim
 node operator/dist/cli.js stake --market 0x... --yes --amount 0.01
@@ -31,6 +31,7 @@ node operator/dist/cli.js status --market 0x...
 node operator/dist/cli.js resolve --market 0x...
 node operator/dist/cli.js wait --market 0x... --timeout 180
 node operator/dist/cli.js claim --market 0x...
+node operator/dist/cli.js markets
 ```
 
 Or link globally: `cd operator && npm link` → then `verdict create ...`
@@ -68,6 +69,7 @@ Config example — `.cursor/mcp.json` in repo root or user config:
 | `verdict_get_outcome` / `verdict_status` | Read state + reasoning |
 | `verdict_wait_resolved` | Poll until Resolved |
 | `verdict_claim` | Withdraw payout |
+| `verdict_list_markets` | List factory markets |
 
 ## Typical agent workflow
 

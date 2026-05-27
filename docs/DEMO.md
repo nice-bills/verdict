@@ -24,7 +24,8 @@ Record: terminal (left) + Blockscout or receipt URL (right). No face cam require
 
 ```bash
 ./scripts/demo-local.sh          # optional: show tests pass
-./scripts/demo-testnet.sh        # live testnet (needs STT + .env)
+./scripts/agent-e2e.sh 2         # live testnet via operator CLI (2 min deadline)
+# demo-testnet.sh is an alias for agent-e2e.sh
 ```
 
 ## Links to show on screen

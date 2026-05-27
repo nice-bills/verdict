@@ -1,8 +1,9 @@
 import { config as loadDotenv } from "dotenv";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Address, Hex } from "viem";
+import { isAddress, type Address, type Hex } from "viem";
+import { parseFactoryAddress } from "./validate.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../..");
@@ -18,22 +19,62 @@ loadEnv();
 
 export const REPO_ROOT_PATH = REPO_ROOT;
 
-export const RPC_URL =
-  process.env.SOMNIA_RPC_URL ??
-  process.env.NEXT_PUBLIC_RPC_URL ??
-  "https://api.infra.testnet.somnia.network";
+function readRpcUrl(): string {
+  const raw =
+    process.env.SOMNIA_RPC_URL?.trim() ||
+    process.env.NEXT_PUBLIC_RPC_URL?.trim() ||
+    "";
+  if (raw) {
+    try {
+      new URL(raw);
+      return raw;
+    } catch {
+      throw new Error(`Invalid SOMNIA_RPC_URL: ${raw}`);
+    }
+  }
+  return "https://api.infra.testnet.somnia.network";
+}
 
-export const CHAIN_ID = Number(process.env.SOMNIA_CHAIN_ID ?? 50312);
+export const RPC_URL = readRpcUrl();
+
+function readChainId(): number {
+  const raw = process.env.SOMNIA_CHAIN_ID?.trim();
+  if (!raw) return 50312;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`Invalid SOMNIA_CHAIN_ID: ${raw}`);
+  }
+  return n;
+}
+
+export const CHAIN_ID = readChainId();
+
+function factoryFromDeploymentsJson(): string | undefined {
+  const path = resolve(REPO_ROOT, "deployments/shannon.json");
+  if (!existsSync(path)) return undefined;
+  try {
+    const data = JSON.parse(readFileSync(path, "utf8")) as { factory?: string };
+    const f = data.factory?.trim();
+    if (f && isAddress(f, { strict: false })) return f;
+  } catch {
+    /* ignore */
+  }
+  return undefined;
+}
 
 export const BLOCK_EXPLORER = "https://somnia-testnet.blockscout.com";
 export const AGENT_RECEIPTS_URL = "https://agents.testnet.somnia.network";
 
 export function getPrivateKey(): Hex {
-  const pk = process.env.PRIVATE_KEY;
+  const pk = process.env.PRIVATE_KEY?.trim();
   if (!pk || pk === "0x") {
     throw new Error("PRIVATE_KEY missing in .env (repo root)");
   }
-  return pk.startsWith("0x") ? (pk as Hex) : (`0x${pk}` as Hex);
+  const hex = pk.startsWith("0x") ? pk : `0x${pk}`;
+  if (!/^0x[0-9a-fA-F]{64}$/.test(hex)) {
+    throw new Error("PRIVATE_KEY must be 32 bytes (64 hex chars)");
+  }
+  return hex as Hex;
 }
 
 function readFactoryFromEnv(): string | undefined {
@@ -45,11 +86,13 @@ function readFactoryFromEnv(): string | undefined {
 }
 
 export function getFactoryAddress(): Address {
-  const addr = readFactoryFromEnv();
+  const addr = readFactoryFromEnv() ?? factoryFromDeploymentsJson();
   if (!addr) {
-    throw new Error("FACTORY_ADDRESS missing in .env — deploy factory first");
+    throw new Error(
+      "FACTORY_ADDRESS missing — set in .env or deploy factory (see deployments/shannon.json)"
+    );
   }
-  return addr as Address;
+  return parseFactoryAddress(addr);
 }
 
 export function getConfigStatus() {

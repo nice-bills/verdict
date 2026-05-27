@@ -4,10 +4,20 @@ type GlassPanelProps = {
   children: ReactNode;
   className?: string;
   as?: "div" | "section" | "article";
+  style?: React.CSSProperties;
 };
 
-export function GlassPanel({ children, className = "", as: Tag = "div" }: GlassPanelProps) {
-  return <Tag className={`glass-panel ${className}`.trim()}>{children}</Tag>;
+export function GlassPanel({
+  children,
+  className = "",
+  as: Tag = "div",
+  style,
+}: GlassPanelProps) {
+  return (
+    <Tag className={`glass-panel ${className}`.trim()} style={style}>
+      {children}
+    </Tag>
+  );
 }
 
 export function GlassButton({
@@ -17,7 +27,7 @@ export function GlassButton({
   type = "button",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "glass" | "yes" | "no";
+  variant?: "glass" | "ghost" | "yes" | "no";
 }) {
   return (
     <button

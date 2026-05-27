@@ -1,69 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { type Address, type Hash } from "viem";
-import { somniaTestnet } from "@/lib/chain";
-import { FACTORY_ADDRESS, factoryAbi } from "@/lib/contracts";
-import { waitForMarketFromTx } from "@/lib/factory";
-import { useWallet } from "@/hooks/useWallet";
-import { useMarkets } from "@/hooks/useMarkets";
 import { SiteNav } from "@/components/site-nav";
-import { GlassButton, GlassPanel } from "@/components/glass";
+import { MarketCard } from "@/components/market-card";
+import { GlassButton } from "@/components/glass";
+import { useWallet } from "@/hooks/useWallet";
+import { useMarketSummaries } from "@/hooks/useMarketSummaries";
+import { FACTORY_ADDRESS } from "@/lib/contracts";
 
 export default function Home() {
-  const { account, connect, getWalletClient } = useWallet();
-  const { markets, refresh: refreshMarkets, error: marketsError } = useMarkets();
-  const [showCreate, setShowCreate] = useState(false);
-  const [question, setQuestion] = useState("Does the page contain VERDICT?");
-  const [sourceUrl, setSourceUrl] = useState("https://example.com");
-  const [resolvePrompt, setResolvePrompt] = useState(
-    "Return YES if the text contains VERDICT (case insensitive), else NO."
-  );
-  const [deadlineMinutes, setDeadlineMinutes] = useState("2");
-  const [txHash, setTxHash] = useState<Hash | null>(null);
-  const [marketAddress, setMarketAddress] = useState<Address | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const factoryConfigured = Boolean(FACTORY_ADDRESS);
+  const { account, connect } = useWallet();
+  const { markets, loading, error, refresh } = useMarketSummaries();
 
   async function handleConnect() {
-    setError(null);
     try {
       await connect();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  }
-
-  async function createMarket() {
-    if (!FACTORY_ADDRESS || !account) return;
-    setBusy(true);
-    setError(null);
-    setTxHash(null);
-    setMarketAddress(null);
-    try {
-      const wallet = getWalletClient();
-      const deadline =
-        BigInt(Math.floor(Date.now() / 1000)) + BigInt(Number(deadlineMinutes) * 60);
-      const hash = await wallet.writeContract({
-        chain: somniaTestnet,
-        account,
-        address: FACTORY_ADDRESS,
-        abi: factoryAbi,
-        functionName: "createMarket",
-        args: [question, sourceUrl, resolvePrompt, deadline],
-      });
-      setTxHash(hash);
-      const market = await waitForMarketFromTx(hash);
-      setMarketAddress(market);
-      setShowCreate(false);
-      await refreshMarkets();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
+    } catch {
+      /* surfaced on create / market pages */
     }
   }
 
@@ -71,134 +24,86 @@ export default function Home() {
     <>
       <SiteNav account={account} onConnect={handleConnect} />
 
-      <main className="page-shell page-shell--wide">
-        {/* Centered hero — reference layout */}
-        <section className="fade-rise fade-rise-1 mx-auto max-w-2xl pt-8 pb-16 text-center">
-          <h1 className="display-serif text-[length:var(--text-hero)]">
-            Ask a question.
-            <br />
-            Let the agent decide.
-          </h1>
-          <p className="mx-auto mt-6 max-w-md text-[length:var(--text-body)] text-[var(--color-ink-body)]">
-            Stake on YES or NO. After the deadline, Somnia&apos;s agent reads your source and
-            validators reach consensus — payouts settle on-chain.
-          </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <GlassButton type="button" onClick={() => setShowCreate((v) => !v)}>
-              {showCreate ? "Hide form" : "Create market"}
-            </GlassButton>
-            {markets[0] && (
-              <Link href={`/market/${markets[0]}`} className="glass-btn">
-                View latest market
-              </Link>
-            )}
-          </div>
-        </section>
+      <section className="hero-marquee fade-rise">
+        <h1 className="display-serif display-xxl">On-chain prediction markets.</h1>
+      </section>
 
-        {!factoryConfigured && (
-          <p className="fade-rise fade-rise-2 mb-8 text-center text-sm text-[var(--color-no)]">
-            Set NEXT_PUBLIC_FACTORY_ADDRESS in app/.env.local
-          </p>
-        )}
+      <hr className="rule-thick" />
 
-        {showCreate && (
-          <GlassPanel className="fade-rise fade-rise-2 mx-auto mb-16 max-w-lg p-8">
-            <h2 className="display-serif text-center text-2xl">New market</h2>
-            <form
-              className="mt-8 flex flex-col gap-5"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void createMarket();
-              }}
-            >
-              <label className="glass-label">
-                Question
-                <input
-                  className="glass-input"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                />
-              </label>
-              <label className="glass-label">
-                Source URL
-                <input
-                  className="glass-input"
-                  value={sourceUrl}
-                  onChange={(e) => setSourceUrl(e.target.value)}
-                />
-              </label>
-              <label className="glass-label">
-                Resolution rule
-                <textarea
-                  className="glass-input glass-textarea"
-                  value={resolvePrompt}
-                  onChange={(e) => setResolvePrompt(e.target.value)}
-                />
-              </label>
-              <label className="glass-label">
-                Deadline (minutes)
-                <input
-                  type="number"
-                  min={1}
-                  className="glass-input max-w-[120px]"
-                  value={deadlineMinutes}
-                  onChange={(e) => setDeadlineMinutes(e.target.value)}
-                />
-              </label>
-              <GlassButton type="submit" disabled={!account || !factoryConfigured || busy}>
-                {busy ? "Creating…" : "Create on Somnia"}
-              </GlassButton>
-            </form>
-            {txHash && (
-              <a
-                className="mt-4 block text-center text-xs text-[var(--color-ink-muted)] underline"
-                href={`https://somnia-testnet.blockscout.com/tx/${txHash}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Transaction on Blockscout
-              </a>
-            )}
-            {marketAddress && (
-              <Link
-                href={`/market/${marketAddress}`}
-                className="glass-btn mt-4 w-full text-center"
-              >
-                Open market →
-              </Link>
-            )}
-          </GlassPanel>
-        )}
-
-        <section className="fade-rise fade-rise-3">
-          <h2 className="display-serif mb-6 text-center text-2xl">Markets</h2>
-          {marketsError && (
-            <p className="mb-4 text-center text-sm text-[var(--color-no)]">{marketsError}</p>
-          )}
-          {markets.length === 0 ? (
-            <p className="text-center text-sm text-[var(--color-ink-muted)]">
-              No markets yet — create one above.
+      <main className="page-gutter ecosystem fade-rise fade-rise-1">
+        <header className="ecosystem__head">
+          <div>
+            <h2 className="display-serif ecosystem__title">Live markets</h2>
+            <p className="ecosystem__lede">
+              Stake STT on outcomes. After the deadline, Somnia&apos;s agent resolves from your
+              source URL.
             </p>
-          ) : (
-            <ul className="mx-auto flex max-w-lg flex-col gap-3">
-              {markets.map((m, i) => (
-                <li key={m}>
-                  <Link href={`/market/${m}`} className="glass-panel block px-6 py-4 transition hover:scale-[1.01]">
-                    <span className="text-sm text-[var(--color-ink-body)]">
-                      Market {markets.length - i}
-                    </span>
-                    <span className="address-chip mt-1 block">{m}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+          </div>
+          <div className="ecosystem__actions">
+            <GlassButton type="button" onClick={() => refresh()} disabled={loading}>
+              {loading ? "Refreshing…" : "Refresh"}
+            </GlassButton>
+            <Link href="/create" className="glass-btn">
+              New market
+            </Link>
+          </div>
+        </header>
 
-        {error && (
-          <p className="fade-rise mt-8 text-center text-sm text-[var(--color-no)]">{error}</p>
+        {!FACTORY_ADDRESS && (
+          <p className="banner-warn">
+            Configure <code>NEXT_PUBLIC_FACTORY_ADDRESS</code> in <code>app/.env.local</code>
+          </p>
+        )}
+
+        {error && <p className="banner-error">{error}</p>}
+
+        {loading && markets.length === 0 && (
+          <div className="market-grid">
+            {[1, 2].map((i) => (
+              <div key={i} className="glass-panel market-card market-card--skeleton" />
+            ))}
+          </div>
+        )}
+
+        {!loading && markets.length === 0 && !error && (
+          <div className="empty-state glass-panel">
+            <p className="display-serif empty-state__title">No markets yet</p>
+            <p className="empty-state__body">
+              Be the first to open a question on Somnia testnet.
+            </p>
+            <Link href="/create" className="glass-btn">
+              Create a market
+            </Link>
+          </div>
+        )}
+
+        {markets.length > 0 && (
+          <ul className="market-grid">
+            {markets.map((m) => (
+              <li key={m.address}>
+                <MarketCard market={m} />
+              </li>
+            ))}
+          </ul>
         )}
       </main>
+
+      <footer className="foot-stmt page-gutter">
+        <p className="foot-stmt__line display-serif">
+          Stakes lock in. Agents resolve. Winners claim.
+        </p>
+        <div className="foot-stmt__meta">
+          <span>Verdict · Somnia testnet</span>
+          <a
+            href="https://somnia-testnet.blockscout.com"
+            target="_blank"
+            rel="noreferrer"
+            className="foot-stmt__link"
+          >
+            Blockscout
+          </a>
+        </div>
+      </footer>
     </>
   );
 }

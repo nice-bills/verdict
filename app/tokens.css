@@ -27,6 +27,7 @@
   --space-3xl: 96px;
 
   --text-hero: clamp(2.75rem, 6vw + 0.5rem, 4.5rem);
+  --text-display-xxl: clamp(3.5rem, 10vw, 7rem);
   --text-title: clamp(1.75rem, 3vw + 0.25rem, 2.5rem);
   --text-body: 1rem;
   --text-sm: 0.875rem;
@@ -34,6 +35,10 @@
 
   --radius-pill: 9999px;
   --radius-glass: 20px;
+
+  --page-gutter: clamp(1.25rem, 4vw, 2.5rem);
+  --rule-hair: 1px;
+  --color-rule: oklch(100% 0 0 / 0.12);
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-fast: 200ms;

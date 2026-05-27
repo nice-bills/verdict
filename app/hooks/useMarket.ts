@@ -20,6 +20,7 @@ export type MarketSnapshot = {
 export function useMarket(market: Address) {
   const [snapshot, setSnapshot] = useState<MarketSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     const [
@@ -72,21 +73,35 @@ export function useMarket(market: Address) {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     refresh()
       .then(() => {
         if (!cancelled) setError(null);
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
+
     const id = setInterval(() => {
-      refresh().catch(() => {});
+      refresh()
+        .then(() => {
+          if (!cancelled) setError(null);
+        })
+        .catch((e) => {
+          if (!cancelled) {
+            setError(e instanceof Error ? e.message : String(e));
+          }
+        });
     }, POLL_MARKET_MS);
+
     return () => {
       cancelled = true;
       clearInterval(id);
     };
   }, [refresh]);
 
-  return { snapshot, error, refresh, setError };
+  return { snapshot, error, loading, refresh, setError };
 }

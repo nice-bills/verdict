@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { parseEther, type Address, type Hash } from "viem";
+import { isAddress, parseEther, type Address, type Hash } from "viem";
 import { somniaTestnet } from "@/lib/chain";
 import { marketAbi, OUTCOME_LABELS, STATE_LABELS } from "@/lib/contracts";
 import { publicClient } from "@/lib/clients";
@@ -14,7 +14,7 @@ import { LiquidNav } from "@/components/liquid-nav";
 import { WalletBanner } from "@/components/wallet-banner";
 import { MarketTradePanel } from "@/components/market-trade-panel";
 import { isLegacySmokeMarket } from "@/lib/market-filters";
-import { MIN_STAKE_STT, POLL_MARKET_MS, blockscoutTxUrl } from "@/lib/constants";
+import { AGENTS_URL, MIN_STAKE_STT, POLL_MARKET_MS, blockscoutTxUrl } from "@/lib/constants";
 
 function formatDeadline(ts: bigint) {
   if (ts <= BigInt(0)) return "—";
@@ -23,10 +23,39 @@ function formatDeadline(ts: bigint) {
 
 export function MarketPageClient() {
   const params = useParams();
-  const market = params.address as Address;
+  const rawAddress = typeof params.address === "string" ? params.address : "";
+  const { account, connect } = useWallet();
 
+  async function handleConnect() {
+    try {
+      await connect();
+    } catch {
+      /* surfaced in child if needed */
+    }
+  }
+
+  if (!isAddress(rawAddress, { strict: false })) {
+    return (
+      <VerdictShell>
+        <LiquidNav account={account} onConnect={handleConnect} />
+        <main className="app-section mx-auto w-full max-w-lg flex-1 px-6 py-12">
+          <Link href="/" className="text-sm text-white/60 hover:text-white">
+            ← Markets
+          </Link>
+          <p className="mt-12 rounded-2xl bg-red-500/15 px-4 py-6 text-center text-sm text-red-200">
+            Invalid market address. Check the URL or pick a market from the home page.
+          </p>
+        </main>
+      </VerdictShell>
+    );
+  }
+
+  return <MarketPageInner market={rawAddress as Address} />;
+}
+
+function MarketPageInner({ market }: { market: Address }) {
   const { account, connect, getWalletClient } = useWallet();
-  const { snapshot, error: loadError, refresh, setError } = useMarket(market);
+  const { snapshot, error: loadError, loading, refresh, setError } = useMarket(market);
   const [busy, setBusy] = useState(false);
   const [lastTx, setLastTx] = useState<Hash | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -124,8 +153,11 @@ export function MarketPageClient() {
 
         <WalletBanner connected={Boolean(account)} onConnect={handleConnect} />
 
-        {!snapshot && !loadError && (
-          <p className="mt-8 text-sm text-white/60">Loading market…</p>
+        {loading && !snapshot && !loadError && (
+          <div className="mt-8 space-y-4" aria-busy="true" aria-label="Loading market">
+            <div className="liquid-glass mx-auto h-8 w-3/4 animate-pulse rounded-lg" />
+            <div className="liquid-glass h-32 animate-pulse rounded-2xl" />
+          </div>
         )}
 
         {snapshot && (
@@ -135,10 +167,7 @@ export function MarketPageClient() {
                 {STATE_LABELS[snapshot.state]}
                 {snapshot.state === 2 ? ` · ${OUTCOME_LABELS[snapshot.outcome]}` : ""}
               </p>
-              <h1
-                className="font-instrument mt-4 text-3xl leading-tight text-white md:text-4xl"
-                style={{ fontFamily: "'Instrument Serif', serif" }}
-              >
+              <h1 className="font-instrument mt-4 text-3xl leading-tight text-white md:text-4xl">
                 {snapshot.question}
               </h1>
               {isLegacySmokeMarket(snapshot.question) && (
@@ -171,7 +200,7 @@ export function MarketPageClient() {
                 <p className="mt-4 text-sm leading-relaxed text-white/85">{snapshot.reasoning}</p>
                 <a
                   className="mt-4 inline-block text-sm text-white underline"
-                  href="https://agents.testnet.somnia.network"
+                  href={AGENTS_URL}
                   target="_blank"
                   rel="noreferrer"
                 >

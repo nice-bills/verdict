@@ -1,5 +1,7 @@
 "use client";
 
+import { somniaTestnet } from "@/lib/chain";
+
 type WalletBannerProps = {
   connected: boolean;
   onConnect: () => void;
@@ -11,7 +13,8 @@ export function WalletBanner({ connected, onConnect }: WalletBannerProps) {
   return (
     <div className="liquid-glass mx-auto mb-8 max-w-md rounded-2xl p-6 text-center">
       <p className="text-sm text-white/80">
-        Connect MetaMask on <strong className="text-white">Somnia testnet</strong> (chain 50312).
+        Connect MetaMask on <strong className="text-white">Somnia testnet</strong> (chain{" "}
+        {somniaTestnet.id}).
       </p>
       <button
         type="button"

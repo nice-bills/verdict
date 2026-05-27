@@ -192,47 +192,93 @@ export async function actionStatus(params: { market: Address }): Promise<JsonRes
   const publicClient = getPublicClient();
   const m = params.market;
 
-  const [question, state, outcome, reasoning, totalYes, totalNo, deadline, deposit] =
-    await Promise.all([
-      publicClient.readContract({ address: m, abi: marketAbi, functionName: "question" }),
-      publicClient.readContract({ address: m, abi: marketAbi, functionName: "state" }),
-      publicClient.readContract({ address: m, abi: marketAbi, functionName: "outcome" }),
-      publicClient.readContract({ address: m, abi: marketAbi, functionName: "agentReasoning" }),
-      publicClient.readContract({ address: m, abi: marketAbi, functionName: "totalYesStake" }),
-      publicClient.readContract({ address: m, abi: marketAbi, functionName: "totalNoStake" }),
-      publicClient.readContract({ address: m, abi: marketAbi, functionName: "deadline" }),
+  let operatorAccount: Address | null = null;
+  try {
+    operatorAccount = getAccountAddress();
+  } catch {
+    /* no PRIVATE_KEY */
+  }
+
+  const reads: Promise<unknown>[] = [
+    publicClient.readContract({ address: m, abi: marketAbi, functionName: "question" }),
+    publicClient.readContract({ address: m, abi: marketAbi, functionName: "state" }),
+    publicClient.readContract({ address: m, abi: marketAbi, functionName: "outcome" }),
+    publicClient.readContract({ address: m, abi: marketAbi, functionName: "agentReasoning" }),
+    publicClient.readContract({ address: m, abi: marketAbi, functionName: "totalYesStake" }),
+    publicClient.readContract({ address: m, abi: marketAbi, functionName: "totalNoStake" }),
+    publicClient.readContract({ address: m, abi: marketAbi, functionName: "deadline" }),
+    publicClient.readContract({
+      address: m,
+      abi: marketAbi,
+      functionName: "requiredResolveDeposit",
+    }),
+  ];
+
+  if (operatorAccount) {
+    reads.push(
       publicClient.readContract({
         address: m,
         abi: marketAbi,
-        functionName: "requiredResolveDeposit",
+        functionName: "yesStake",
+        args: [operatorAccount],
       }),
-    ]);
+      publicClient.readContract({
+        address: m,
+        abi: marketAbi,
+        functionName: "noStake",
+        args: [operatorAccount],
+      }),
+      publicClient.readContract({
+        address: m,
+        abi: marketAbi,
+        functionName: "claimed",
+        args: [operatorAccount],
+      })
+    );
+  }
+
+  const results = await Promise.all(reads);
+  const [question, state, outcome, reasoning, totalYes, totalNo, deadline, deposit] = results;
 
   const stateNum = Number(state);
   const outcomeNum = Number(outcome);
   const now = Math.floor(Date.now() / 1000);
   const deadlineNum = Number(deadline);
+  const resolved = stateNum === RESOLVED_STATE;
 
-  return {
-    ok: true,
-    market: {
-      address: m,
-      question: question as string,
-      state: STATE_LABELS[stateNum] ?? stateNum,
-      stateRaw: stateNum,
-      outcome: OUTCOME_LABELS[outcomeNum] ?? outcomeNum,
-      outcomeRaw: outcomeNum,
-      agentReasoning: (reasoning as string) || null,
-      totalYesStakeStt: formatEther(totalYes as bigint),
-      totalNoStakeStt: formatEther(totalNo as bigint),
-      totalPoolStt: formatEther((totalYes as bigint) + (totalNo as bigint)),
-      deadline: deadlineNum,
-      deadlineIso: new Date(deadlineNum * 1000).toISOString(),
-      pastDeadline: now >= deadlineNum,
-      requiredResolveDepositStt: formatEther(deposit as bigint),
-      explorer: `${BLOCK_EXPLORER}/address/${m}`,
-    },
+  const market: Record<string, unknown> = {
+    address: m,
+    question: question as string,
+    state: STATE_LABELS[stateNum] ?? stateNum,
+    stateRaw: stateNum,
+    outcome: OUTCOME_LABELS[outcomeNum] ?? outcomeNum,
+    outcomeRaw: outcomeNum,
+    agentReasoning: (reasoning as string) || null,
+    totalYesStakeStt: formatEther(totalYes as bigint),
+    totalNoStakeStt: formatEther(totalNo as bigint),
+    totalPoolStt: formatEther((totalYes as bigint) + (totalNo as bigint)),
+    deadline: deadlineNum,
+    deadlineIso: new Date(deadlineNum * 1000).toISOString(),
+    pastDeadline: now >= deadlineNum,
+    requiredResolveDepositStt: formatEther(deposit as bigint),
+    explorer: `${BLOCK_EXPLORER}/address/${m}`,
   };
+
+  if (operatorAccount && results.length >= 11) {
+    const yesStake = results[8] as bigint;
+    const noStake = results[9] as bigint;
+    const claimed = results[10] as boolean;
+    const hasStake = yesStake > 0n || noStake > 0n;
+    market.operator = {
+      address: operatorAccount,
+      yesStakeStt: formatEther(yesStake),
+      noStakeStt: formatEther(noStake),
+      claimed,
+      canClaim: resolved && hasStake && !claimed,
+    };
+  }
+
+  return { ok: true, market };
 }
 
 export async function actionWait(params: {

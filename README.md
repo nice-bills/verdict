@@ -89,7 +89,7 @@ cd app && pnpm install && pnpm dev
 
 Factory/RPC default from `deployments/shannon.json` (no `.env` required for read-only).
 
-**Hosted:** see **[docs/HOSTING.md](docs/HOSTING.md)** — GitHub Pages (`/verdict`) or Vercel (recommended for new markets without rebuild).
+**Hosted (Vercel):** import repo with **Root Directory = `app`** — see **[docs/HOSTING.md](docs/HOSTING.md)**. Optional GitHub Pages mirror at `/verdict`.
 
 ## License
 

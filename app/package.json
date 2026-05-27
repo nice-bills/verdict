@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "node -e \"require('fs').cpSync('../deployments/shannon.json','config/shannon.json')\"",
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",

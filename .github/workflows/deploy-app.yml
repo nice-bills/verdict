@@ -1,0 +1,64 @@
+name: Deploy app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "deployments/**"
+      - ".github/workflows/deploy-app.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: deploy-app-pages
+  cancel-in-progress: true
+
+jobs:
+  build-github-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Sync deployment config
+        run: cp deployments/shannon.json app/config/shannon.json
+
+      - name: Build static site
+        working-directory: app
+        env:
+          GITHUB_PAGES: "true"
+          NEXT_PUBLIC_BASE_PATH: /verdict
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/out
+
+  deploy-github-pages:
+    needs: build-github-pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+

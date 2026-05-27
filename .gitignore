@@ -15,6 +15,10 @@ app/.next/
 operator/node_modules/
 operator/dist/
 
+# Agent skills (install: npx skills add nutlope/hallmark)
+.agents/
+
 # OS
 .DS_Store
 .cursor/mcp.json
+verdict-walkthrough.mp4

@@ -1,171 +1,193 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { type Address, type Hash } from "viem";
-import { somniaTestnet } from "@/lib/chain";
-import { FACTORY_ADDRESS, factoryAbi } from "@/lib/contracts";
-import { waitForMarketFromTx } from "@/lib/factory";
+import { useRouter } from "next/navigation";
+import { ArrowRight, ExternalLink, Globe, Link2 } from "lucide-react";
+import { VerdictShell } from "@/components/verdict-shell";
+import { LiquidNav } from "@/components/liquid-nav";
+import { MarketCard } from "@/components/market-card";
 import { useWallet } from "@/hooks/useWallet";
+import { useMarketSummaries } from "@/hooks/useMarketSummaries";
+import { FACTORY_ADDRESS } from "@/lib/contracts";
 
 export default function Home() {
-  const { account, connect, getWalletClient } = useWallet();
-  const [question, setQuestion] = useState("Does the page contain VERDICT?");
-  const [sourceUrl, setSourceUrl] = useState("https://example.com");
-  const [resolvePrompt, setResolvePrompt] = useState(
-    "Return YES if the text contains VERDICT (case insensitive), else NO."
-  );
-  const [deadlineMinutes, setDeadlineMinutes] = useState("2");
-  const [txHash, setTxHash] = useState<Hash | null>(null);
-  const [marketAddress, setMarketAddress] = useState<Address | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const factoryConfigured = Boolean(FACTORY_ADDRESS);
+  const router = useRouter();
+  const { account, connect } = useWallet();
+  const { markets, loading, error, refresh } = useMarketSummaries();
 
   async function handleConnect() {
-    setError(null);
     try {
       await connect();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  }
-
-  async function createMarket() {
-    if (!FACTORY_ADDRESS || !account) return;
-    setBusy(true);
-    setError(null);
-    setTxHash(null);
-    setMarketAddress(null);
-    try {
-      const wallet = getWalletClient();
-      const deadline =
-        BigInt(Math.floor(Date.now() / 1000)) + BigInt(Number(deadlineMinutes) * 60);
-      const hash = await wallet.writeContract({
-        chain: somniaTestnet,
-        account,
-        address: FACTORY_ADDRESS,
-        abi: factoryAbi,
-        functionName: "createMarket",
-        args: [question, sourceUrl, resolvePrompt, deadline],
-      });
-      setTxHash(hash);
-      const market = await waitForMarketFromTx(hash);
-      setMarketAddress(market);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
+    } catch {
+      /* ignore */
     }
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-8 px-6 py-12">
-      <header>
-        <p className="text-sm text-zinc-500">Somnia Agentathon</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Verdict</h1>
-        <p className="mt-2 text-zinc-400">
-          YES/NO markets settled by Somnia&apos;s on-chain agent — not a human multisig.
-        </p>
-      </header>
+    <VerdictShell>
+      <LiquidNav account={account} onConnect={handleConnect} />
 
-      {!factoryConfigured && (
-        <p className="rounded-lg border border-amber-900/50 bg-amber-950/30 px-4 py-3 text-sm text-amber-200">
-          Set <code className="font-mono">NEXT_PUBLIC_FACTORY_ADDRESS</code> in{" "}
-          <code className="font-mono">app/.env.local</code> after deploying the factory.
-        </p>
-      )}
-
-      <section className="flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={handleConnect}
-          className="rounded-lg bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white"
+      {/* Hero — full viewport, spec layout */}
+      <section className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-12 text-center -translate-y-[10%]">
+        <h1
+          className="font-instrument mb-8 text-5xl tracking-tight text-white md:text-6xl lg:text-7xl lg:whitespace-nowrap"
+          style={{ fontFamily: "'Instrument Serif', serif" }}
         >
-          {account ? `${account.slice(0, 6)}…${account.slice(-4)}` : "Connect wallet"}
-        </button>
+          Settled on Somnia.
+        </h1>
+
+        <div className="w-full max-w-xl space-y-4">
+          <form
+            className="liquid-glass flex items-center gap-3 rounded-full py-2 pl-6 pr-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              router.push("/create");
+            }}
+          >
+            <input
+              type="text"
+              className="liquid-glass-input"
+              placeholder="Open a new prediction market…"
+              readOnly
+              onFocus={() => router.push("/create")}
+            />
+            <button
+              type="submit"
+              className="rounded-full bg-white p-3 text-black transition-transform hover:scale-105"
+              aria-label="Create market"
+            >
+              <ArrowRight size={20} />
+            </button>
+          </form>
+
+          <p className="px-4 text-sm leading-relaxed text-white">
+            Stake YES or NO in STT. After the deadline, Somnia&apos;s agent reads your source URL
+            and validators reach consensus — winners claim on-chain.
+          </p>
+
+          <Link
+            href="/create"
+            className="liquid-glass inline-block rounded-full px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-white/5"
+          >
+            Create a market
+          </Link>
+        </div>
       </section>
 
-      <section className="flex flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-        <h2 className="text-lg font-medium">Create market</h2>
-        <label className="flex flex-col gap-1 text-sm">
-          Question
-          <input
-            className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Source URL (agent reads this page)
-          <input
-            className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-xs"
-            value={sourceUrl}
-            onChange={(e) => setSourceUrl(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Resolution rule
-          <textarea
-            className="min-h-20 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2"
-            value={resolvePrompt}
-            onChange={(e) => setResolvePrompt(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Deadline (minutes from now)
-          <input
-            type="number"
-            min={1}
-            className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2"
-            value={deadlineMinutes}
-            onChange={(e) => setDeadlineMinutes(e.target.value)}
-          />
-        </label>
-        <button
-          type="button"
-          disabled={!account || !factoryConfigured || busy}
-          onClick={createMarket}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
-        >
-          {busy ? "Creating…" : "Create market"}
-        </button>
-      </section>
-
-      {txHash && (
-        <p className="break-all font-mono text-xs text-zinc-500">
-          Tx:{" "}
+      <footer className="relative z-10 flex justify-center gap-4 pb-12">
+        {[
+          { href: "https://somnia-testnet.blockscout.com", label: "Blockscout", Icon: Globe },
+          { href: "https://agents.testnet.somnia.network", label: "Agents", Icon: ExternalLink },
+          { href: "https://somnia.network", label: "Somnia", Icon: Link2 },
+        ].map(({ href, label, Icon }) => (
           <a
-            className="text-emerald-400 underline"
-            href={`https://somnia-testnet.blockscout.com/tx/${txHash}`}
+            key={href}
+            href={href}
             target="_blank"
             rel="noreferrer"
+            aria-label={label}
+            className="liquid-glass rounded-full p-4 text-white/80 transition-all hover:bg-white/5 hover:text-white"
           >
-            {txHash}
+            <Icon size={20} />
           </a>
-        </p>
-      )}
-
-      {marketAddress && (
-        <Link
-          href={`/market/${marketAddress}`}
-          className="rounded-lg border border-emerald-800 bg-emerald-950/40 px-4 py-3 text-center text-emerald-300 hover:bg-emerald-950/60"
-        >
-          Open market → {marketAddress.slice(0, 10)}…
-        </Link>
-      )}
-
-      {error && (
-        <p className="rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3 text-sm text-red-300">
-          {error}
-        </p>
-      )}
-
-      <footer className="text-xs text-zinc-600">
-        Prefer CLI? Run <code className="font-mono">./scripts/demo-testnet.sh</code> from the repo
-        root. Video script: <code className="font-mono">docs/DEMO.md</code>
+        ))}
       </footer>
-    </main>
+
+      {/* Below fold — full app */}
+      <section id="how" className="app-section px-6 py-20">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="font-instrument text-3xl text-white md:text-4xl">How it works</h2>
+          <ol className="mt-10 grid gap-4 md:grid-cols-4">
+            {[
+              ["01", "Create", "Question, URL, and resolution rule."],
+              ["02", "Stake", "Back YES or NO before the deadline."],
+              ["03", "Resolve", "Somnia agent + validator consensus."],
+              ["04", "Claim", "Winners paid; INVALID refunds all."],
+            ].map(([n, title, body]) => (
+              <li key={n} className="liquid-glass rounded-2xl p-5 text-left">
+                <span className="text-xs text-white/50">{n}</span>
+                <h3 className="mt-2 font-medium text-white">{title}</h3>
+                <p className="mt-2 text-sm text-white/70">{body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="app-section border-t border-white/10 px-6 pb-24 pt-4">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="font-instrument text-3xl text-white">Live markets</h2>
+              <p className="mt-2 max-w-md text-sm text-white/60">
+                Loaded from your factory on Somnia. Legacy dev smoke tests are hidden.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => refresh()}
+                disabled={loading}
+                className="liquid-glass rounded-full px-5 py-2 text-sm text-white hover:bg-white/5 disabled:opacity-40"
+              >
+                {loading ? "Refreshing…" : "Refresh"}
+              </button>
+              <Link
+                href="/create"
+                className="liquid-glass rounded-full px-5 py-2 text-sm text-white hover:bg-white/5"
+              >
+                New market
+              </Link>
+            </div>
+          </div>
+
+          {!FACTORY_ADDRESS && (
+            <p className="mb-6 rounded-2xl bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200">
+              Set NEXT_PUBLIC_FACTORY_ADDRESS in app/.env.local
+            </p>
+          )}
+
+          {error && (
+            <p className="mb-6 rounded-2xl bg-red-500/10 px-4 py-3 text-center text-sm text-red-200">
+              {error}
+            </p>
+          )}
+
+          {loading && markets.length === 0 && (
+            <div className="grid gap-4 md:grid-cols-2">
+              {[1, 2].map((i) => (
+                <div key={i} className="liquid-glass h-36 animate-pulse rounded-2xl" />
+              ))}
+            </div>
+          )}
+
+          {!loading && markets.length === 0 && !error && (
+            <div className="liquid-glass rounded-2xl p-12 text-center">
+              <p className="font-instrument text-2xl text-white">No markets yet</p>
+              <p className="mt-3 text-sm text-white/60">
+                Create one for your Agentathon demo — use &quot;Use demo example&quot; on the create
+                page.
+              </p>
+              <Link
+                href="/create"
+                className="liquid-glass mt-6 inline-block rounded-full px-8 py-3 text-sm text-white hover:bg-white/5"
+              >
+                Create a market
+              </Link>
+            </div>
+          )}
+
+          {markets.length > 0 && (
+            <ul className="grid gap-4 md:grid-cols-2">
+              {markets.map((m) => (
+                <li key={m.address}>
+                  <MarketCard market={m} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+    </VerdictShell>
   );
 }

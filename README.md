@@ -56,7 +56,8 @@ cp .env.example .env
 
 forge script script/Deploy.s.sol:Deploy \
   --rpc-url https://api.infra.testnet.somnia.network \
-  --broadcast
+  --broadcast \
+  --legacy
 
 # Put factory address in .env FACTORY_ADDRESS=0x...
 ./scripts/demo-testnet.sh

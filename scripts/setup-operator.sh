@@ -31,6 +31,7 @@ if [[ -z "${FACTORY_ADDRESS:-}" ]]; then
   forge script script/Deploy.s.sol:Deploy \
     --rpc-url "$RPC" \
     --broadcast \
+    --legacy \
     -vv
 
   FACTORY=$(forge script script/Deploy.s.sol:Deploy --rpc-url "$RPC" 2>/dev/null | awk '/VerdictFactory/ {print $2; exit}')

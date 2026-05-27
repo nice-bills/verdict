@@ -1,3 +1,16 @@
+# Verdict UI
+
+Next.js frontend for Somnia testnet markets. Copy factory address from `../deployments/shannon.json` into `.env.local`:
+
+```bash
+NEXT_PUBLIC_FACTORY_ADDRESS=0x...
+pnpm install && pnpm dev
+```
+
+Design uses the [Hallmark](https://github.com/nutlope/hallmark) skill (Bloom / atmospheric — serif headlines, warm blooms, no terminal aesthetic).
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

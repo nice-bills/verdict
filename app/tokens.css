@@ -1,27 +1,24 @@
-/* Hallmark · genre: atmospheric · macrostructure: Marquee Hero · theme: Bloom
- * audience: Agentathon judges + crypto-native users · use: create & trade YES/NO markets
- * nav: N5 · footer: Ft5 · enrichment: none (typography + bloom canvas)
+/* Hallmark · studied-DNA (source: reference video) · theme: cinematic-glass
+ * macrostructure: centered hero + glass panels · nav: transparent · footer: minimal
  */
 
 :root {
-  --color-paper: oklch(16% 0.02 280);
-  --color-paper-2: oklch(20% 0.025 285);
-  --color-paper-3: oklch(24% 0.03 290);
-  --color-ink: oklch(96% 0.01 80);
-  --color-ink-muted: oklch(72% 0.02 80);
-  --color-ink-faint: oklch(52% 0.02 80);
-  --color-accent: oklch(72% 0.18 45);
-  --color-accent-soft: oklch(72% 0.18 45 / 0.15);
-  --color-yes: oklch(68% 0.14 155);
-  --color-no: oklch(62% 0.16 25);
-  --color-focus: oklch(78% 0.16 45);
-  --color-border: oklch(100% 0 0 / 0.08);
-  --color-border-strong: oklch(100% 0 0 / 0.14);
+  --color-paper: oklch(12% 0.02 280);
+  --color-scrim: oklch(8% 0.02 280 / 0.55);
+  --color-ink: oklch(100% 0 0);
+  --color-ink-body: oklch(100% 0 0 / 0.8);
+  --color-ink-muted: oklch(100% 0 0 / 0.55);
+  --color-glass-top: oklch(100% 0 0 / 0.08);
+  --color-glass-bottom: oklch(100% 0 0 / 0);
+  --color-glass-edge: oklch(100% 0 0 / 0.4);
+  --color-glass-shadow: oklch(0% 0 0 / 0.35);
+  --color-yes: oklch(78% 0.12 160);
+  --color-no: oklch(72% 0.14 25);
+  --color-focus: oklch(85% 0.08 80);
 
   --font-display: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
-  --font-body: var(--font-geist-sans), system-ui, sans-serif;
+  --font-body: var(--font-inter), "Inter", system-ui, sans-serif;
 
-  --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
   --space-lg: 24px;
@@ -29,19 +26,17 @@
   --space-2xl: 64px;
   --space-3xl: 96px;
 
-  --text-display: clamp(2.5rem, 5vw + 0.75rem, 4.25rem);
-  --text-title: clamp(1.5rem, 2vw + 0.5rem, 2.25rem);
-  --text-lede: 1.125rem;
+  --text-hero: clamp(2.75rem, 6vw + 0.5rem, 4.5rem);
+  --text-title: clamp(1.75rem, 3vw + 0.25rem, 2.5rem);
   --text-body: 1rem;
   --text-sm: 0.875rem;
   --text-xs: 0.75rem;
 
-  --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-pill: 999px;
+  --radius-pill: 9999px;
+  --radius-glass: 20px;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-fast: 150ms;
-  --dur-med: 280ms;
+  --dur-fast: 200ms;
+  --dur-med: 480ms;
+  --blur-glass: 12px;
 }

@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Inter, Instrument_Serif } from "next/font/google";
+import { CinematicBackground } from "@/components/cinematic-background";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -19,8 +15,8 @@ const instrumentSerif = Instrument_Serif({
 });
 
 export const metadata: Metadata = {
-  title: "Verdict — consensus prediction markets",
-  description: "YES/NO markets settled by Somnia agents on Agentic L1",
+  title: "Verdict",
+  description: "Consensus-resolved prediction markets on Somnia",
 };
 
 export default function RootLayout({
@@ -30,10 +26,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} antialiased`}
-      >
-        <div className="verdict-canvas" aria-hidden />
+      <body className={`${inter.variable} ${instrumentSerif.variable}`}>
+        <CinematicBackground />
         {children}
       </body>
     </html>

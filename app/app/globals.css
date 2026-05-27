@@ -1,35 +1,182 @@
 @import "tailwindcss";
 @import "../tokens.css";
 
-html {
+html,
+body {
   overflow-x: clip;
 }
 
 body {
-  overflow-x: clip;
   min-height: 100dvh;
   background: var(--color-paper);
-  color: var(--color-ink);
+  color: var(--color-ink-body);
   font-family: var(--font-body);
   font-size: var(--text-body);
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
-.verdict-canvas {
+/* —— Cinematic backdrop (reference: full-screen looping atmosphere) —— */
+.cinematic-bg {
   position: fixed;
   inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 55% 45% at 12% 8%, oklch(55% 0.14 35 / 0.35), transparent 70%),
-    radial-gradient(ellipse 50% 40% at 88% 92%, oklch(45% 0.12 300 / 0.28), transparent 72%),
-    var(--color-paper);
+  z-index: -2;
+  overflow: hidden;
+  background: oklch(10% 0.03 270);
 }
 
-@keyframes verdict-rise {
+.cinematic-bg__mesh {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 30%, oklch(45% 0.12 280 / 0.5), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 80% 70%, oklch(40% 0.14 35 / 0.45), transparent 50%),
+    radial-gradient(ellipse 60% 80% at 50% 100%, oklch(35% 0.1 200 / 0.35), transparent 60%);
+  animation: cinematic-drift 24s ease-in-out infinite alternate;
+}
+
+.cinematic-bg__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    oklch(8% 0.02 280 / 0.4) 0%,
+    oklch(6% 0.02 280 / 0.75) 50%,
+    oklch(4% 0.02 280 / 0.9) 100%
+  );
+}
+
+@keyframes cinematic-drift {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.08) translate(-2%, -1%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cinematic-bg__mesh {
+    animation: none;
+  }
+}
+
+/* —— Glass system (reference: liquid glass, inset highlight, blur) —— */
+.glass-panel {
+  border-radius: var(--radius-glass);
+  background: linear-gradient(180deg, var(--color-glass-top) 0%, var(--color-glass-bottom) 100%);
+  box-shadow:
+    inset 0 1px 1px var(--color-glass-edge),
+    0 4px 24px var(--color-glass-shadow);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+}
+
+.glass-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 24px;
+  border: none;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink);
+  text-decoration: none;
+  cursor: pointer;
+  background: linear-gradient(180deg, var(--color-glass-top) 0%, var(--color-glass-bottom) 100%);
+  box-shadow:
+    inset 0 1px 1px var(--color-glass-edge),
+    0 4px 20px var(--color-glass-shadow);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.glass-btn:hover:not(:disabled) {
+  transform: scale(1.03);
+}
+
+.glass-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.glass-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.glass-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.glass-btn--yes {
+  color: var(--color-yes);
+}
+
+.glass-btn--no {
+  color: var(--color-no);
+}
+
+.glass-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+  background: linear-gradient(180deg, oklch(100% 0 0 / 0.06) 0%, oklch(100% 0 0 / 0.02) 100%);
+  box-shadow: inset 0 1px 1px var(--color-glass-edge);
+  backdrop-filter: blur(4px);
+  transition: box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.glass-input::placeholder {
+  color: var(--color-ink-muted);
+}
+
+.glass-input:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.glass-textarea {
+  border-radius: var(--radius-glass);
+  min-height: 100px;
+  resize: vertical;
+}
+
+.glass-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+/* —— Typography —— */
+.display-serif {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--color-ink);
+}
+
+/* —— Motion (reference: fade-rise 24px) —— */
+@keyframes fade-rise {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(24px);
   }
   to {
     opacity: 1;
@@ -37,140 +184,70 @@ body {
   }
 }
 
-.verdict-rise {
-  animation: verdict-rise var(--dur-med) var(--ease-out) both;
+.fade-rise {
+  animation: fade-rise var(--dur-med) var(--ease-out) both;
 }
 
-.verdict-rise-1 {
-  animation-delay: 60ms;
+.fade-rise-1 {
+  animation-delay: 80ms;
 }
-.verdict-rise-2 {
-  animation-delay: 140ms;
+.fade-rise-2 {
+  animation-delay: 160ms;
 }
-.verdict-rise-3 {
-  animation-delay: 220ms;
+.fade-rise-3 {
+  animation-delay: 240ms;
 }
-.verdict-rise-4 {
-  animation-delay: 300ms;
+.fade-rise-4 {
+  animation-delay: 320ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .verdict-rise,
-  .verdict-rise-1,
-  .verdict-rise-2,
-  .verdict-rise-3,
-  .verdict-rise-4 {
+  .fade-rise,
+  .fade-rise-1,
+  .fade-rise-2,
+  .fade-rise-3,
+  .fade-rise-4,
+  .cinematic-bg__mesh {
     animation: none;
     opacity: 1;
     transform: none;
   }
 }
 
-.verdict-card {
-  background: oklch(22% 0.03 285 / 0.72);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 24px 80px oklch(0% 0 0 / 0.35);
+/* —— Layout —— */
+.page-shell {
+  margin: 0 auto;
+  max-width: 720px;
+  padding: 0 var(--space-lg) var(--space-3xl);
 }
 
-.verdict-pill {
+.page-shell--wide {
+  max-width: 960px;
+}
+
+.pool-track {
+  display: flex;
+  height: 6px;
+  overflow: hidden;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border-strong);
-  background: oklch(100% 0 0 / 0.06);
-  backdrop-filter: blur(12px);
-}
-
-.verdict-input {
-  width: 100%;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: oklch(12% 0.02 280 / 0.6);
-  color: var(--color-ink);
-  padding: 12px 14px;
-  font-size: var(--text-sm);
-  transition:
-    border-color var(--dur-fast) var(--ease-out),
-    box-shadow var(--dur-fast) var(--ease-out);
-}
-
-.verdict-input:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-  border-color: transparent;
-}
-
-.verdict-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: var(--radius-pill);
-  padding: 12px 22px;
-  font-size: var(--text-sm);
-  font-weight: 500;
-  transition:
-    transform var(--dur-fast) var(--ease-out),
-    background var(--dur-fast) var(--ease-out),
-    box-shadow var(--dur-fast) var(--ease-out);
-}
-
-.verdict-btn:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
-.verdict-btn:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.verdict-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.verdict-btn-primary {
-  background: var(--color-accent);
-  color: oklch(18% 0.02 45);
-  border: none;
-}
-
-.verdict-btn-primary:hover:not(:disabled) {
-  box-shadow: 0 8px 32px var(--color-accent-soft);
-}
-
-.verdict-btn-ghost {
-  background: oklch(100% 0 0 / 0.06);
-  color: var(--color-ink);
-  border: 1px solid var(--color-border-strong);
-}
-
-.verdict-btn-ghost:hover:not(:disabled) {
   background: oklch(100% 0 0 / 0.1);
 }
 
-.verdict-btn-yes {
-  background: oklch(68% 0.14 155 / 0.2);
-  color: var(--color-yes);
-  border: 1px solid oklch(68% 0.14 155 / 0.45);
+.pool-track__yes {
+  background: var(--color-yes);
+  transition: width 0.5s var(--ease-out);
 }
 
-.verdict-btn-no {
-  background: oklch(62% 0.16 25 / 0.2);
-  color: var(--color-no);
-  border: 1px solid oklch(62% 0.16 25 / 0.45);
+.pool-track__no {
+  flex: 1;
+  background: var(--color-no);
+  opacity: 0.7;
 }
 
-.verdict-display {
-  font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
-}
-
-.verdict-mono {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+.address-chip {
   font-size: var(--text-xs);
-  letter-spacing: 0;
+  color: var(--color-ink-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 input,

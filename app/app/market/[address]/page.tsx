@@ -10,7 +10,7 @@ import { publicClient } from "@/lib/clients";
 import { useWallet } from "@/hooks/useWallet";
 import { useMarket } from "@/hooks/useMarket";
 import { SiteNav } from "@/components/site-nav";
-import { PoolBar } from "@/components/pool-bar";
+import { GlassButton, GlassPanel } from "@/components/glass";
 
 function formatDeadline(ts: bigint) {
   if (ts <= BigInt(0)) return "—";
@@ -101,109 +101,115 @@ export default function MarketPage() {
       ? Math.max(0, Number(snapshot.deadline) - now)
       : 0;
 
+  const yes = snapshot ? Number(formatEther(snapshot.totalYesStake)) : 0;
+  const no = snapshot ? Number(formatEther(snapshot.totalNoStake)) : 0;
+  const yesPct = yes + no > 0 ? Math.round((yes / (yes + no)) * 100) : 50;
+
   return (
     <>
       <SiteNav account={account} onConnect={handleConnect} />
 
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 pb-20 pt-4">
+      <main className="page-shell">
         <Link
           href="/"
-          className="verdict-rise text-sm text-[var(--color-ink-muted)] transition hover:text-[var(--color-ink)]"
+          className="fade-rise mb-8 inline-block text-sm text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]"
         >
-          ← All markets
+          ← Markets
         </Link>
 
-        <header className="verdict-rise verdict-rise-1 text-center">
-          <p className="text-xs font-medium tracking-wide text-[var(--color-accent)] uppercase">
-            {snapshot ? (STATE_LABELS[snapshot.state] ?? "Market") : "Loading"}
-            {snapshot && snapshot.state === 2
-              ? ` · ${OUTCOME_LABELS[snapshot.outcome] ?? "—"}`
+        <header className="fade-rise fade-rise-1 text-center">
+          <p className="text-xs font-medium uppercase tracking-widest text-[var(--color-ink-muted)]">
+            {snapshot ? (STATE_LABELS[snapshot.state] ?? "Market") : "…"}
+            {snapshot?.state === 2
+              ? ` · ${OUTCOME_LABELS[snapshot.outcome] ?? ""}`
               : ""}
           </p>
-          <h1 className="verdict-display mt-3 text-[length:var(--text-title)] text-[var(--color-ink)]">
-            {snapshot?.question ?? "Loading market…"}
+          <h1 className="display-serif mt-4 text-[length:var(--text-title)]">
+            {snapshot?.question ?? "Loading…"}
           </h1>
-          <p className="verdict-mono mt-3 text-[var(--color-ink-faint)]">{market}</p>
+          <p className="address-chip mt-4">{market}</p>
         </header>
 
         {snapshot && (
           <>
-            <section className="verdict-rise verdict-rise-2 verdict-card flex flex-col gap-6 p-6 sm:p-8">
-              <PoolBar yesStake={snapshot.totalYesStake} noStake={snapshot.totalNoStake} />
+            <GlassPanel className="fade-rise fade-rise-2 mx-auto mt-12 max-w-md p-8">
+              <div className="pool-track" role="presentation">
+                <div className="pool-track__yes" style={{ width: `${yesPct}%` }} />
+                <div className="pool-track__no" />
+              </div>
+              <div className="mt-4 flex justify-between text-xs text-[var(--color-ink-muted)]">
+                <span>YES {formatEther(snapshot.totalYesStake)} STT</span>
+                <span>{yesPct}%</span>
+                <span>NO {formatEther(snapshot.totalNoStake)} STT</span>
+              </div>
 
-              <dl className="grid grid-cols-2 gap-4 text-sm">
+              <dl className="mt-8 grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <dt className="text-[var(--color-ink-faint)]">Deadline</dt>
-                  <dd className="mt-1">{formatDeadline(snapshot.deadline)}</dd>
+                  <dt className="text-[var(--color-ink-muted)]">Deadline</dt>
+                  <dd className="mt-1 text-[var(--color-ink)]">{formatDeadline(snapshot.deadline)}</dd>
                 </div>
                 <div>
-                  <dt className="text-[var(--color-ink-faint)]">Time left</dt>
-                  <dd className="mt-1">
+                  <dt className="text-[var(--color-ink-muted)]">Time left</dt>
+                  <dd className="mt-1 text-[var(--color-ink)]">
                     {snapshot.state !== 0
                       ? "—"
                       : pastDeadline
-                        ? "Ready to resolve"
+                        ? "Ready"
                         : `${Math.floor(secondsLeft / 60)}m ${secondsLeft % 60}s`}
                   </dd>
                 </div>
               </dl>
 
-              <div className="flex flex-wrap justify-center gap-3">
-                <button
-                  type="button"
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
+                <GlassButton
+                  variant="yes"
                   disabled={!account || busy || snapshot.state !== 0}
                   onClick={() => write("stake", { isYes: true })}
-                  className="verdict-btn verdict-btn-yes min-w-[8.5rem]"
                 >
                   Stake YES · 0.01
-                </button>
-                <button
-                  type="button"
+                </GlassButton>
+                <GlassButton
+                  variant="no"
                   disabled={!account || busy || snapshot.state !== 0}
                   onClick={() => write("stake", { isYes: false })}
-                  className="verdict-btn verdict-btn-no min-w-[8.5rem]"
                 >
                   Stake NO · 0.01
-                </button>
-                <button
-                  type="button"
+                </GlassButton>
+                <GlassButton
                   disabled={!account || busy || snapshot.state !== 0 || !pastDeadline}
                   onClick={() => write("resolve")}
-                  className="verdict-btn verdict-btn-primary"
                 >
-                  Resolve (~{formatEther(snapshot.resolveDeposit)} STT)
-                </button>
-                <button
-                  type="button"
+                  Resolve · {formatEther(snapshot.resolveDeposit)} STT
+                </GlassButton>
+                <GlassButton
                   disabled={!account || busy || snapshot.state !== 2}
                   onClick={() => write("claim")}
-                  className="verdict-btn verdict-btn-ghost"
                 >
-                  Claim payout
-                </button>
+                  Claim
+                </GlassButton>
               </div>
-            </section>
+            </GlassPanel>
 
             {snapshot.reasoning && (
-              <section className="verdict-rise verdict-rise-3 verdict-card p-6">
-                <h2 className="text-sm font-medium text-[var(--color-ink-muted)]">
+              <GlassPanel className="fade-rise fade-rise-3 mx-auto mt-6 max-w-md p-6">
+                <h2 className="text-xs font-medium uppercase tracking-widest text-[var(--color-ink-muted)]">
                   Agent reasoning
                 </h2>
-                <p className="mt-3 text-[var(--color-ink)] leading-relaxed">{snapshot.reasoning}</p>
+                <p className="mt-4 text-[var(--color-ink-body)]">{snapshot.reasoning}</p>
                 <a
-                  className="mt-4 inline-block text-sm text-[var(--color-accent)] underline"
+                  className="mt-4 inline-block text-sm text-[var(--color-ink)] underline"
                   href="https://agents.testnet.somnia.network"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  View on Somnia agent explorer →
+                  Somnia agent receipts →
                 </a>
-              </section>
+              </GlassPanel>
             )}
 
             {snapshot.state === 1 && (
-              <p className="verdict-rise verdict-rise-3 text-center text-sm text-[var(--color-accent)]">
-                Resolving on Somnia… refresh in 30–120s or check agent receipts.
+              <p className="fade-rise fade-rise-4 mt-6 text-center text-sm text-[var(--color-ink-body)]">
+                Resolving… check back in 30–120 seconds.
               </p>
             )}
           </>
@@ -211,17 +217,17 @@ export default function MarketPage() {
 
         {lastTx && (
           <a
-            className="verdict-mono block break-all text-center text-xs text-[var(--color-accent)] underline"
+            className="mt-8 block break-all text-center text-xs text-[var(--color-ink-muted)] underline"
             href={`https://somnia-testnet.blockscout.com/tx/${lastTx}`}
             target="_blank"
             rel="noreferrer"
           >
-            {lastTx}
+            View transaction
           </a>
         )}
 
         {error && (
-          <p className="verdict-card px-4 py-3 text-center text-sm text-[var(--color-no)]">{error}</p>
+          <p className="mt-6 text-center text-sm text-[var(--color-no)]">{error}</p>
         )}
       </main>
     </>

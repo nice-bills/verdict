@@ -1,9 +1,16 @@
 [
   {
     "date": "2026-05-27",
+    "macrostructure": "Centered hero + glass panels",
+    "theme": "studied-DNA (cinematic-glass)",
+    "enrichment": "none",
+    "brief": "Verdict UI v2 — reference video liquid glass, Instrument Serif + Inter"
+  },
+  {
+    "date": "2026-05-27",
     "macrostructure": "Marquee Hero",
     "theme": "Bloom",
     "enrichment": "none",
-    "brief": "Verdict prediction markets UI — atmospheric cinematic, no terminal aesthetic"
+    "brief": "Verdict v1 (rejected) — generic dark dashboard"
   }
 ]

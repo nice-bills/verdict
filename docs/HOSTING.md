@@ -2,6 +2,16 @@
 
 The Next.js app lives in `app/`. Factory address and RPC defaults come from `deployments/shannon.json`, so you can deploy without setting secrets (override with `NEXT_PUBLIC_*` if needed).
 
+## Enable GitHub Pages (required once)
+
+Until this is done, the **Deploy app** workflow builds successfully but the deploy step returns 404.
+
+1. Open **https://github.com/nice-bills/verdict/settings/pages**
+2. Under **Build and deployment → Source**, choose **GitHub Actions**
+3. Re-run the workflow: **Actions → Deploy app → Run workflow**
+
+Live URL: **https://nice-bills.github.io/verdict/**
+
 ## Option A — Vercel (recommended)
 
 Best for `/market/[address]` routes: new markets work immediately without rebuilding.

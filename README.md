@@ -81,13 +81,15 @@ Open **[docs/verdict-explainer.html](docs/verdict-explainer.html)** in a browser
 
 See [docs/DEMO.md](docs/DEMO.md). Record your coding agent using `verdict` / MCP tools, then Blockscout + [agent receipts](https://agents.testnet.somnia.network). No web UI required.
 
-## UI (optional)
+## UI
 
 ```bash
-cd app && cp ../.env.example .env.local
-# Set NEXT_PUBLIC_FACTORY_ADDRESS after deploy
-pnpm install && pnpm dev
+cd app && pnpm install && pnpm dev
 ```
+
+Factory/RPC default from `deployments/shannon.json` (no `.env` required for read-only).
+
+**Hosted:** see **[docs/HOSTING.md](docs/HOSTING.md)** — GitHub Pages (`/verdict`) or Vercel (recommended for new markets without rebuild).
 
 ## License
 

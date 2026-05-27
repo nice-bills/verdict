@@ -1,0 +1,47 @@
+/* Hallmark · genre: atmospheric · macrostructure: Marquee Hero · theme: Bloom
+ * audience: Agentathon judges + crypto-native users · use: create & trade YES/NO markets
+ * nav: N5 · footer: Ft5 · enrichment: none (typography + bloom canvas)
+ */
+
+:root {
+  --color-paper: oklch(16% 0.02 280);
+  --color-paper-2: oklch(20% 0.025 285);
+  --color-paper-3: oklch(24% 0.03 290);
+  --color-ink: oklch(96% 0.01 80);
+  --color-ink-muted: oklch(72% 0.02 80);
+  --color-ink-faint: oklch(52% 0.02 80);
+  --color-accent: oklch(72% 0.18 45);
+  --color-accent-soft: oklch(72% 0.18 45 / 0.15);
+  --color-yes: oklch(68% 0.14 155);
+  --color-no: oklch(62% 0.16 25);
+  --color-focus: oklch(78% 0.16 45);
+  --color-border: oklch(100% 0 0 / 0.08);
+  --color-border-strong: oklch(100% 0 0 / 0.14);
+
+  --font-display: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
+  --font-body: var(--font-geist-sans), system-ui, sans-serif;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+
+  --text-display: clamp(2.5rem, 5vw + 0.75rem, 4.25rem);
+  --text-title: clamp(1.5rem, 2vw + 0.5rem, 2.25rem);
+  --text-lede: 1.125rem;
+  --text-body: 1rem;
+  --text-sm: 0.875rem;
+  --text-xs: 0.75rem;
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur-med: 280ms;
+}

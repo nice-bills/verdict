@@ -7,9 +7,41 @@ import { somniaTestnet } from "@/lib/chain";
 import { FACTORY_ADDRESS, factoryAbi } from "@/lib/contracts";
 import { waitForMarketFromTx } from "@/lib/factory";
 import { useWallet } from "@/hooks/useWallet";
+import { useMarkets } from "@/hooks/useMarkets";
+import { SiteNav } from "@/components/site-nav";
+import { useMarket } from "@/hooks/useMarket";
+import { STATE_LABELS } from "@/lib/contracts";
+
+function MarketPreview({ address }: { address: Address }) {
+  const { snapshot } = useMarket(address);
+  if (!snapshot) {
+    return (
+      <li className="verdict-card px-5 py-4 text-sm text-[var(--color-ink-faint)]">Loading…</li>
+    );
+  }
+  return (
+    <li>
+      <Link
+        href={`/market/${address}`}
+        className="verdict-card block px-5 py-4 transition hover:border-[var(--color-border-strong)] hover:shadow-[0_20px_60px_oklch(0%_0_0/0.45)]"
+      >
+        <p className="verdict-display text-lg text-[var(--color-ink)]">{snapshot.question}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--color-ink-muted)]">
+          <span className="rounded-full border border-[var(--color-border)] px-2.5 py-0.5">
+            {STATE_LABELS[snapshot.state] ?? snapshot.state}
+          </span>
+          <span className="verdict-mono text-[var(--color-ink-faint)]">
+            {address.slice(0, 10)}…{address.slice(-6)}
+          </span>
+        </div>
+      </Link>
+    </li>
+  );
+}
 
 export default function Home() {
   const { account, connect, getWalletClient } = useWallet();
+  const { markets, refresh: refreshMarkets } = useMarkets();
   const [question, setQuestion] = useState("Does the page contain VERDICT?");
   const [sourceUrl, setSourceUrl] = useState("https://example.com");
   const [resolvePrompt, setResolvePrompt] = useState(
@@ -53,6 +85,7 @@ export default function Home() {
       setTxHash(hash);
       const market = await waitForMarketFromTx(hash);
       setMarketAddress(market);
+      await refreshMarkets();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -61,111 +94,137 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-8 px-6 py-12">
-      <header>
-        <p className="text-sm text-zinc-500">Somnia Agentathon</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Verdict</h1>
-        <p className="mt-2 text-zinc-400">
-          YES/NO markets settled by Somnia&apos;s on-chain agent — not a human multisig.
-        </p>
-      </header>
+    <>
+      <SiteNav account={account} onConnect={handleConnect} />
 
-      {!factoryConfigured && (
-        <p className="rounded-lg border border-amber-900/50 bg-amber-950/30 px-4 py-3 text-sm text-amber-200">
-          Set <code className="font-mono">NEXT_PUBLIC_FACTORY_ADDRESS</code> in{" "}
-          <code className="font-mono">app/.env.local</code> after deploying the factory.
-        </p>
-      )}
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 pb-20">
+        <section className="verdict-rise verdict-rise-1 mx-auto max-w-3xl pt-4 text-center">
+          <p className="text-sm font-medium tracking-wide text-[var(--color-accent)] uppercase">
+            Somnia Agentathon
+          </p>
+          <h1 className="verdict-display mt-4 text-[length:var(--text-display)] text-[var(--color-ink)]">
+            Markets that settle themselves
+          </h1>
+          <p className="mx-auto mt-5 max-w-xl text-[length:var(--text-lede)] text-[var(--color-ink-muted)]">
+            Stake YES or NO, then Somnia&apos;s agent reads your source URL and reaches
+            validator consensus. Winners claim on-chain — no multisig, no trust-me bro.
+          </p>
+        </section>
 
-      <section className="flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={handleConnect}
-          className="rounded-lg bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white"
-        >
-          {account ? `${account.slice(0, 6)}…${account.slice(-4)}` : "Connect wallet"}
-        </button>
-      </section>
+        {!factoryConfigured && (
+          <p className="verdict-rise verdict-rise-2 verdict-card mx-auto max-w-xl px-4 py-3 text-center text-sm text-[var(--color-accent)]">
+            Set{" "}
+            <span className="verdict-mono">NEXT_PUBLIC_FACTORY_ADDRESS</span> in{" "}
+            <span className="verdict-mono">app/.env.local</span> (see deployments/shannon.json).
+          </p>
+        )}
 
-      <section className="flex flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-        <h2 className="text-lg font-medium">Create market</h2>
-        <label className="flex flex-col gap-1 text-sm">
-          Question
-          <input
-            className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Source URL (agent reads this page)
-          <input
-            className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-xs"
-            value={sourceUrl}
-            onChange={(e) => setSourceUrl(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Resolution rule
-          <textarea
-            className="min-h-20 rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2"
-            value={resolvePrompt}
-            onChange={(e) => setResolvePrompt(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Deadline (minutes from now)
-          <input
-            type="number"
-            min={1}
-            className="rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2"
-            value={deadlineMinutes}
-            onChange={(e) => setDeadlineMinutes(e.target.value)}
-          />
-        </label>
-        <button
-          type="button"
-          disabled={!account || !factoryConfigured || busy}
-          onClick={createMarket}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
-        >
-          {busy ? "Creating…" : "Create market"}
-        </button>
-      </section>
+        <section className="verdict-rise verdict-rise-2 grid gap-8 lg:grid-cols-[1fr_1.1fr]">
+          <div className="verdict-card flex flex-col gap-5 p-6 lg:p-8">
+            <h2 className="verdict-display text-[length:var(--text-title)]">Create a market</h2>
+            <p className="text-sm text-[var(--color-ink-muted)]">
+              Plain-English question, a URL for the agent, and a resolution rule.
+            </p>
+            <label className="flex flex-col gap-1.5 text-sm text-[var(--color-ink-muted)]">
+              Question
+              <input
+                className="verdict-input"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm text-[var(--color-ink-muted)]">
+              Source URL
+              <input
+                className="verdict-input verdict-mono"
+                value={sourceUrl}
+                onChange={(e) => setSourceUrl(e.target.value)}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm text-[var(--color-ink-muted)]">
+              Resolution rule
+              <textarea
+                className="verdict-input min-h-24 resize-y"
+                value={resolvePrompt}
+                onChange={(e) => setResolvePrompt(e.target.value)}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm text-[var(--color-ink-muted)]">
+              Deadline (minutes)
+              <input
+                type="number"
+                min={1}
+                className="verdict-input max-w-[8rem]"
+                value={deadlineMinutes}
+                onChange={(e) => setDeadlineMinutes(e.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              disabled={!account || !factoryConfigured || busy}
+              onClick={createMarket}
+              className="verdict-btn verdict-btn-primary w-full sm:w-auto"
+            >
+              {busy ? "Creating…" : "Create market"}
+            </button>
+            {txHash && (
+              <a
+                className="verdict-mono break-all text-[var(--color-accent)] underline"
+                href={`https://somnia-testnet.blockscout.com/tx/${txHash}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                View transaction
+              </a>
+            )}
+            {marketAddress && (
+              <Link
+                href={`/market/${marketAddress}`}
+                className="verdict-btn verdict-btn-ghost text-center"
+              >
+                Open new market →
+              </Link>
+            )}
+          </div>
 
-      {txHash && (
-        <p className="break-all font-mono text-xs text-zinc-500">
-          Tx:{" "}
-          <a
-            className="text-emerald-400 underline"
-            href={`https://somnia-testnet.blockscout.com/tx/${txHash}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {txHash}
-          </a>
-        </p>
-      )}
+          <div className="flex flex-col gap-4">
+            <div className="verdict-rise verdict-rise-3 flex items-end justify-between gap-4">
+              <h2 className="verdict-display text-2xl">Live markets</h2>
+              <span className="text-sm text-[var(--color-ink-faint)]">{markets.length} total</span>
+            </div>
+            {markets.length === 0 ? (
+              <p className="verdict-card px-5 py-8 text-center text-sm text-[var(--color-ink-muted)]">
+                No markets yet. Create one to get started.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {markets.slice(0, 8).map((m) => (
+                  <MarketPreview key={m} address={m} />
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
 
-      {marketAddress && (
-        <Link
-          href={`/market/${marketAddress}`}
-          className="rounded-lg border border-emerald-800 bg-emerald-950/40 px-4 py-3 text-center text-emerald-300 hover:bg-emerald-950/60"
-        >
-          Open market → {marketAddress.slice(0, 10)}…
-        </Link>
-      )}
+        {error && (
+          <p className="verdict-card border-[oklch(62%_0.16_25/0.4)] px-4 py-3 text-sm text-[var(--color-no)]">
+            {error}
+          </p>
+        )}
 
-      {error && (
-        <p className="rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3 text-sm text-red-300">
-          {error}
-        </p>
-      )}
-
-      <footer className="text-xs text-zinc-600">
-        Prefer CLI? Run <code className="font-mono">./scripts/demo-testnet.sh</code> from the repo
-        root. Video script: <code className="font-mono">docs/DEMO.md</code>
-      </footer>
-    </main>
+        <footer className="verdict-rise verdict-rise-4 border-t border-[var(--color-border)] pt-8 text-center text-sm text-[var(--color-ink-faint)]">
+          <p className="verdict-display text-lg text-[var(--color-ink-muted)]">
+            The resolver is on-chain. The receipt is public.
+          </p>
+          <p className="mt-3">
+            CLI &amp; MCP: see{" "}
+            <a className="text-[var(--color-accent)] underline" href="https://github.com/nice-bills/verdict">
+              AGENTS.md
+            </a>{" "}
+            in the repo.
+          </p>
+        </footer>
+      </main>
+    </>
   );
 }

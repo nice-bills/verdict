@@ -21,33 +21,51 @@ export function useMarket(market: Address) {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const results = await publicClient.multicall({
-      contracts: [
-        { address: market, abi: marketAbi, functionName: "question" },
-        { address: market, abi: marketAbi, functionName: "state" },
-        { address: market, abi: marketAbi, functionName: "outcome" },
-        { address: market, abi: marketAbi, functionName: "agentReasoning" },
-        { address: market, abi: marketAbi, functionName: "totalYesStake" },
-        { address: market, abi: marketAbi, functionName: "totalNoStake" },
-        { address: market, abi: marketAbi, functionName: "deadline" },
-        { address: market, abi: marketAbi, functionName: "requiredResolveDeposit" },
-      ],
-    });
-
-    const failed = results.find((r) => r.status === "failure");
-    if (failed?.status === "failure") {
-      throw failed.error;
-    }
+    const [
+      question,
+      state,
+      outcome,
+      reasoning,
+      totalYesStake,
+      totalNoStake,
+      deadline,
+      resolveDeposit,
+    ] = await Promise.all([
+      publicClient.readContract({ address: market, abi: marketAbi, functionName: "question" }),
+      publicClient.readContract({ address: market, abi: marketAbi, functionName: "state" }),
+      publicClient.readContract({ address: market, abi: marketAbi, functionName: "outcome" }),
+      publicClient.readContract({
+        address: market,
+        abi: marketAbi,
+        functionName: "agentReasoning",
+      }),
+      publicClient.readContract({
+        address: market,
+        abi: marketAbi,
+        functionName: "totalYesStake",
+      }),
+      publicClient.readContract({
+        address: market,
+        abi: marketAbi,
+        functionName: "totalNoStake",
+      }),
+      publicClient.readContract({ address: market, abi: marketAbi, functionName: "deadline" }),
+      publicClient.readContract({
+        address: market,
+        abi: marketAbi,
+        functionName: "requiredResolveDeposit",
+      }),
+    ]);
 
     setSnapshot({
-      question: results[0].result as string,
-      state: Number(results[1].result),
-      outcome: Number(results[2].result),
-      reasoning: results[3].result as string,
-      totalYesStake: results[4].result as bigint,
-      totalNoStake: results[5].result as bigint,
-      deadline: results[6].result as bigint,
-      resolveDeposit: results[7].result as bigint,
+      question: question as string,
+      state: Number(state),
+      outcome: Number(outcome),
+      reasoning: reasoning as string,
+      totalYesStake: totalYesStake as bigint,
+      totalNoStake: totalNoStake as bigint,
+      deadline: deadline as bigint,
+      resolveDeposit: resolveDeposit as bigint,
     });
   }, [market]);
 

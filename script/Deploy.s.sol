@@ -6,7 +6,8 @@ import {console2} from "forge-std/console2.sol";
 import {VerdictFactory} from "../src/VerdictFactory.sol";
 
 /// @notice Deploy VerdictFactory to Somnia Shannon testnet.
-/// forge script script/Deploy.s.sol:Deploy --rpc-url $SOMNIA_RPC_URL --broadcast
+/// Somnia rejects EIP-1559 contract creation — always pass --legacy:
+/// forge script script/Deploy.s.sol:Deploy --rpc-url $SOMNIA_RPC_URL --broadcast --legacy
 contract Deploy is Script {
   address constant PLATFORM_TESTNET = 0x037Bb9C718F3f7fe5eCBDB0b600D607b52706776;
   uint256 constant PARSE_WEBSITE_AGENT_ID = 12875401142070969085;

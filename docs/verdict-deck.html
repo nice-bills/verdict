@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Verdict — Presentation Deck</title>
+  <meta name="description" content="Consensus-resolved prediction markets on Somnia. Agent-readable deck — works with or without a live presenter." />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --void: #030306;
+      --ink: #0a0a12;
+      --glass: rgba(255,255,255,0.04);
+      --line: rgba(255,255,255,0.1);
+      --yes: #00ff9d;
+      --yes-dim: rgba(0,255,157,0.15);
+      --no: #ff3d6a;
+      --no-dim: rgba(255,61,106,0.15);
+      --agent: #a78bfa;
+      --agent-dim: rgba(167,139,250,0.15);
+      --gold: #ffc14d;
+      --text: #f4f4f8;
+      --dim: #8b8b9e;
+      --slide-pad: clamp(1.5rem, 4vw, 3.5rem);
+      --headline: clamp(1.75rem, 5.5vw, 3.75rem);
+      --sub: clamp(1rem, 2.2vw, 1.35rem);
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--void);
+      color: var(--text);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
+    .mesh {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 55% at 10% -5%, rgba(0,255,157,0.12), transparent 55%),
+        radial-gradient(ellipse 65% 45% at 100% 15%, rgba(167,139,250,0.16), transparent 50%),
+        radial-gradient(ellipse 50% 35% at 50% 110%, rgba(255,61,106,0.08), transparent 45%),
+        var(--void);
+    }
+
+    /* ─── Deck chrome ─── */
+    .deck-ui {
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem var(--slide-pad);
+      background: linear-gradient(transparent, rgba(3,3,6,0.92));
+      pointer-events: none;
+    }
+
+    .progress-track {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      z-index: 100;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--yes), var(--agent));
+      transition: width 0.35s ease;
+    }
+
+    .slide-counter {
+      font-family: "Syne", sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--dim);
+      pointer-events: auto;
+    }
+
+    .nav-hint {
+      font-size: 0.7rem;
+      color: var(--dim);
+      letter-spacing: 0.04em;
+    }
+
+    .nav-hint kbd {
+      display: inline-block;
+      padding: 0.15rem 0.4rem;
+      margin: 0 0.1rem;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.65rem;
+      background: var(--glass);
+    }
+
+    /* ─── Slides ─── */
+    .deck {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      width: 100%;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: calc(var(--slide-pad) + 1rem) var(--slide-pad) calc(var(--slide-pad) + 3rem);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(12px);
+      transition: opacity 0.45s ease, transform 0.45s ease, visibility 0.45s;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .slide-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: "Syne", sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--agent);
+      margin-bottom: 1rem;
+    }
+
+    .slide-tag::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--agent);
+      box-shadow: 0 0 10px var(--agent);
+    }
+
+    h1, h2 {
+      font-family: "Syne", sans-serif;
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      max-width: 18ch;
+    }
+
+    h1 { font-size: clamp(2.5rem, 8vw, 5rem); max-width: 14ch; }
+    h2 { font-size: var(--headline); }
+
+    .lead {
+      margin-top: 1.25rem;
+      font-size: var(--sub);
+      line-height: 1.55;
+      color: var(--dim);
+      max-width: 42ch;
+    }
+
+    .lead strong { color: var(--text); font-weight: 600; }
+
+    .accent-yes { color: var(--yes); }
+    .accent-no { color: var(--no); }
+    .accent-agent { color: var(--agent); }
+    .accent-gold { color: var(--gold); }
+
+    /* ─── Bento grid ─── */
+    .bento {
+      display: grid;
+      gap: 0.85rem;
+      margin-top: 1.75rem;
+      max-width: 920px;
+    }
+
+    .bento-3 { grid-template-columns: repeat(3, 1fr); }
+    .bento-2x2 { grid-template-columns: repeat(2, 1fr); }
+    .bento-4 { grid-template-columns: repeat(4, 1fr); }
+
+    @media (max-width: 768px) {
+      .bento-3, .bento-4 { grid-template-columns: 1fr; }
+      .bento-2x2 { grid-template-columns: 1fr; }
+    }
+
+    .bento-cell {
+      background: var(--glass);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1.1rem 1.2rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .bento-cell.wide { grid-column: span 2; }
+
+    @media (max-width: 768px) {
+      .bento-cell.wide { grid-column: span 1; }
+    }
+
+    .bento-label {
+      font-family: "Syne", sans-serif;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 0.45rem;
+    }
+
+    .bento-value {
+      font-family: "Syne", sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .bento-note {
+      margin-top: 0.35rem;
+      font-size: 0.8rem;
+      color: var(--dim);
+      line-height: 1.4;
+    }
+
+    .cell-yes { border-color: rgba(0,255,157,0.25); background: var(--yes-dim); }
+    .cell-no { border-color: rgba(255,61,106,0.25); background: var(--no-dim); }
+    .cell-agent { border-color: rgba(167,139,250,0.3); background: var(--agent-dim); }
+
+    /* ─── Flow diagram ─── */
+    .flow {
+      display: flex;
+      align-items: stretch;
+      gap: 0.5rem;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+      max-width: 960px;
+    }
+
+    .flow-step {
+      flex: 1;
+      min-width: 120px;
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--glass);
+      text-align: center;
+    }
+
+    .flow-step .num {
+      font-family: "Syne", sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+    }
+
+    .flow-step .title {
+      font-family: "Syne", sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin: 0.35rem 0;
+    }
+
+    .flow-step .desc {
+      font-size: 0.72rem;
+      color: var(--dim);
+      line-height: 1.35;
+    }
+
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      color: var(--dim);
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 700px) {
+      .flow-arrow { display: none; }
+      .flow { flex-direction: column; }
+    }
+
+    /* ─── Big metric ─── */
+    .metric-hero {
+      margin-top: 1.5rem;
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .metric-num {
+      font-family: "Syne", sans-serif;
+      font-size: clamp(3rem, 12vw, 6rem);
+      font-weight: 800;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--yes), var(--agent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .metric-caption {
+      font-size: var(--sub);
+      color: var(--dim);
+      max-width: 28ch;
+      line-height: 1.45;
+    }
+
+    /* ─── Code strip ─── */
+    .code-strip {
+      margin-top: 1.5rem;
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,0.45);
+      font-family: ui-monospace, "Cascadia Code", monospace;
+      font-size: clamp(0.65rem, 1.8vw, 0.85rem);
+      line-height: 1.5;
+      color: var(--yes);
+      overflow-x: auto;
+      max-width: 100%;
+    }
+
+    .code-strip .dim { color: var(--dim); }
+    .code-strip .kw { color: var(--agent); }
+
+    /* ─── CTA slide ─── */
+    .cta-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 2rem;
+    }
+
+    .cta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.1rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--glass);
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .cta-pill:hover {
+      border-color: var(--yes);
+      background: var(--yes-dim);
+    }
+
+    .cta-pill.primary {
+      border-color: rgba(0,255,157,0.4);
+      background: var(--yes-dim);
+    }
+
+    /* ─── Split layout ─── */
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: center;
+      max-width: 1000px;
+    }
+
+    @media (max-width: 800px) {
+      .split { grid-template-columns: 1fr; }
+    }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .compare-table th,
+    .compare-table td {
+      padding: 0.55rem 0.65rem;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .compare-table th {
+      font-family: "Syne", sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+
+  </style>
+</head>
+<body>
+  <div class="mesh" aria-hidden="true"></div>
+  <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress"></div></div>
+
+  <main class="deck" id="deck" aria-live="polite">
+
+    <!-- 1 · Cover -->
+    <section class="slide active" data-slide="1">
+      <p class="slide-tag">Somnia Agentathon · Encode Club</p>
+      <h1>Verdict</h1>
+      <p class="lead">Consensus-resolved prediction markets on Somnia — where <strong>agents read the web</strong> and <strong>validators settle the outcome on-chain</strong>.</p>
+      <div class="metric-hero">
+        <span class="metric-num">YES / NO</span>
+        <p class="metric-caption">Stake native token. Call <code style="color:var(--agent)">resolve()</code>. Winners claim pro-rata from the pool.</p>
+      </div>
+    </section>
+
+    <!-- 2 · Problem (headline = conclusion) -->
+    <section class="slide" data-slide="2">
+      <p class="slide-tag">The problem</p>
+      <h2>Oracle trust is the bottleneck for on-chain prediction markets</h2>
+      <p class="lead">Markets are easy to create. <strong>Deciding who was right</strong> is slow, political, or centralized — and that kills composability.</p>
+    </section>
+
+    <!-- 3 · Pain (bento) -->
+    <section class="slide" data-slide="3">
+      <p class="slide-tag">Why incumbents fail</p>
+      <h2>Every resolver trades speed for trust — or the reverse</h2>
+      <div class="bento bento-3">
+        <div class="bento-cell">
+          <p class="bento-label">Human committees</p>
+          <p class="bento-value">Days to weeks</p>
+          <p class="bento-note">Subjective, expensive, doesn't scale to agent swarms</p>
+        </div>
+        <div class="bento-cell">
+          <p class="bento-label">Multisig / DAO vote</p>
+          <p class="bento-value">Governance drag</p>
+          <p class="bento-note">Whales coordinate; small markets aren't worth the vote</p>
+        </div>
+        <div class="bento-cell">
+          <p class="bento-label">Trusted bots</p>
+          <p class="bento-value">Single point of failure</p>
+          <p class="bento-note">"Trust me bro" APIs — opaque, unverifiable reasoning</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 · Insight -->
+    <section class="slide" data-slide="4">
+      <p class="slide-tag">The shift</p>
+      <h2>Somnia's agentic L1 turns resolution into a <span class="accent-agent">verifiable service</span></h2>
+      <p class="lead">LLM agents execute off-chain work. <strong>Validator consensus</strong> anchors the result. Smart contracts only pay out after a cryptographically attested response.</p>
+      <div class="bento bento-2x2" style="margin-top:1.5rem">
+        <div class="bento-cell cell-agent wide">
+          <p class="bento-label">Parse Website agent</p>
+          <p class="bento-value">Reads a URL + plain-English rule → returns YES, NO, or INVALID</p>
+        </div>
+        <div class="bento-cell cell-yes">
+          <p class="bento-label">On-chain</p>
+          <p class="bento-value">Parimutuel pool</p>
+          <p class="bento-note">Winners split loser's stake</p>
+        </div>
+        <div class="bento-cell cell-no">
+          <p class="bento-label">Transparency</p>
+          <p class="bento-value">Agent receipts</p>
+          <p class="bento-note">Every step logged on agents explorer</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 · Solution -->
+    <section class="slide" data-slide="5">
+      <p class="slide-tag">Our solution</p>
+      <h2>Three inputs define the market — the chain enforces the rest</h2>
+      <div class="bento bento-3">
+        <div class="bento-cell cell-yes">
+          <p class="bento-label">① Question</p>
+          <p class="bento-value">"Does the page contain VERDICT?"</p>
+        </div>
+        <div class="bento-cell cell-agent">
+          <p class="bento-label">② Source URL</p>
+          <p class="bento-value">https://example.com</p>
+        </div>
+        <div class="bento-cell">
+          <p class="bento-label">③ Resolution rule</p>
+          <p class="bento-value">Plain English for the agent</p>
+          <p class="bento-note">+ deadline timestamp</p>
+        </div>
+      </div>
+      <p class="lead" style="margin-top:1.25rem">No custom oracle wiring. <strong>Same contract path</strong> for every factual question the agent can read.</p>
+    </section>
+
+    <!-- 6 · Flow -->
+    <section class="slide" data-slide="6">
+      <p class="slide-tag">Market lifecycle</p>
+      <h2>Four steps from question to payout</h2>
+      <div class="flow">
+        <div class="flow-step" style="border-color:rgba(0,255,157,0.3)">
+          <p class="num">01</p>
+          <p class="title accent-yes">Create</p>
+          <p class="desc">Factory deploys VerdictMarket</p>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step">
+          <p class="num">02</p>
+          <p class="title">Stake</p>
+          <p class="desc">YES / NO until deadline</p>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step" style="border-color:rgba(167,139,250,0.35)">
+          <p class="num">03</p>
+          <p class="title accent-agent">Resolve</p>
+          <p class="desc">Agent request + consensus</p>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step" style="border-color:rgba(255,193,77,0.35)">
+          <p class="num">04</p>
+          <p class="title accent-gold">Claim</p>
+          <p class="desc">Winners withdraw pro-rata</p>
+        </div>
+      </div>
+      <div class="bento bento-4" style="margin-top:1.25rem">
+        <div class="bento-cell"><p class="bento-label">Open</p><p class="bento-value">Staking live</p></div>
+        <div class="bento-cell cell-agent"><p class="bento-label">Resolving</p><p class="bento-value">Agent running</p></div>
+        <div class="bento-cell cell-yes"><p class="bento-label">Resolved</p><p class="bento-value">Outcome set</p></div>
+        <div class="bento-cell"><p class="bento-label">INVALID</p><p class="bento-value">Full refund</p></div>
+      </div>
+    </section>
+
+    <!-- 7 · Resolution detail -->
+    <section class="slide" data-slide="7">
+      <p class="slide-tag">Resolution</p>
+      <h2><code style="font-size:0.85em;color:var(--agent)">resolve()</code> triggers Somnia's LLM Parse Website agent — not an EOA guess</h2>
+      <div class="split">
+        <div>
+          <div class="bento-cell cell-agent" style="margin-bottom:0.75rem">
+            <p class="bento-label">Subcommittee</p>
+            <p class="bento-value">3 validators · consensus-verified</p>
+          </div>
+          <div class="bento-cell cell-yes">
+            <p class="bento-label">Stored on-chain</p>
+            <p class="bento-value">Outcome + agent reasoning string</p>
+          </div>
+        </div>
+        <div class="code-strip">
+          <span class="dim">// VerdictMarket.resolve()</span><br>
+          <span class="kw">createRequest</span>(parseAgentId, handler, payload)<br>
+          <span class="dim">→ agent fetches sourceUrl</span><br>
+          <span class="dim">→ applies resolvePrompt</span><br>
+          <span class="dim">→ returns </span>"YES" | "NO" | "INVALID"<br>
+          <span class="kw">handleResponse</span> → set outcome → claim()
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 · Economics -->
+    <section class="slide" data-slide="8">
+      <p class="slide-tag">Economics</p>
+      <h2>Winners take the pool — INVALID refunds everyone</h2>
+      <div class="bento bento-2x2">
+        <div class="bento-cell cell-yes">
+          <p class="bento-label">YES wins</p>
+          <p class="bento-value">your_stake / total_yes × pool</p>
+          <p class="bento-note">Losers' NO stake redistributed</p>
+        </div>
+        <div class="bento-cell cell-no">
+          <p class="bento-label">NO wins</p>
+          <p class="bento-value">Mirror of YES case</p>
+        </div>
+        <div class="bento-cell wide">
+          <p class="bento-label">Min stake</p>
+          <p class="bento-value">0.001 STT · resolve deposit covers agent fees</p>
+        </div>
+        <div class="bento-cell">
+          <p class="bento-label">Composable</p>
+          <p class="bento-value">Any wallet · any agent via MCP</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9 · Built for agents -->
+    <section class="slide" data-slide="9">
+      <p class="slide-tag">Primary UX</p>
+      <h2>Coding agents operate markets end-to-end — no hand-rolled scripts</h2>
+      <div class="code-strip">
+        <span class="dim">$</span> verdict create -q "..." -u "https://..." -r "..." -m 2<br>
+        <span class="dim">$</span> verdict stake --market 0x... --yes --amount 0.01<br>
+        <span class="dim">$</span> verdict resolve --market 0x...<br>
+        <span class="dim">$</span> verdict wait --market 0x... --timeout 180<br>
+        <span class="dim">$</span> verdict claim --market 0x...
+      </div>
+      <div class="bento bento-3" style="margin-top:1rem">
+        <div class="bento-cell cell-agent">
+          <p class="bento-label">MCP tools</p>
+          <p class="bento-value">verdict_create_market, stake, resolve, claim</p>
+        </div>
+        <div class="bento-cell">
+          <p class="bento-label">Output</p>
+          <p class="bento-value">Structured JSON for agents</p>
+        </div>
+        <div class="bento-cell cell-yes">
+          <p class="bento-label">Docs</p>
+          <p class="bento-value">AGENTS.md playbook</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10 · Architecture -->
+    <section class="slide" data-slide="10">
+      <p class="slide-tag">Architecture</p>
+      <h2>Minimal Solidity surface — Somnia platform does the heavy lifting</h2>
+      <div class="bento bento-2x2">
+        <div class="bento-cell cell-yes">
+          <p class="bento-label">VerdictFactory</p>
+          <p class="bento-value">createMarket()</p>
+          <p class="bento-note">Deploys one market per question</p>
+        </div>
+        <div class="bento-cell cell-agent">
+          <p class="bento-label">VerdictMarket</p>
+          <p class="bento-value">stake · resolve · claim</p>
+          <p class="bento-note">IAgentRequesterHandler callback</p>
+        </div>
+        <div class="bento-cell">
+          <p class="bento-label">operator/</p>
+          <p class="bento-value">CLI + MCP server</p>
+        </div>
+        <div class="bento-cell">
+          <p class="bento-label">test/</p>
+          <p class="bento-value">Forge + MockAgentPlatform</p>
+          <p class="bento-note">Full lifecycle without testnet</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 · Comparison -->
+    <section class="slide" data-slide="11">
+      <p class="slide-tag">Differentiation</p>
+      <h2>Verdict is the market layer — Somnia is the trust layer</h2>
+      <table class="compare-table">
+        <thead>
+          <tr><th>Resolver</th><th>Time</th><th>Verifiable reasoning</th><th>On-chain payout</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Human committee</td><td>Days</td><td>Sometimes</td><td>Manual</td></tr>
+          <tr><td>Multisig</td><td>Hours–days</td><td>Rarely</td><td>Yes</td></tr>
+          <tr><td>Centralized bot</td><td>Minutes</td><td>No</td><td>Yes</td></tr>
+          <tr><td class="accent-yes"><strong>Verdict + Somnia agent</strong></td><td class="accent-yes"><strong>~30–120s testnet</strong></td><td class="accent-yes"><strong>Receipt + on-chain string</strong></td><td class="accent-yes"><strong>Automatic claim()</strong></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 12 · Proof -->
+    <section class="slide" data-slide="12">
+      <p class="slide-tag">Live proof</p>
+      <h2>Deployed on Somnia testnet — reproducible in one terminal session</h2>
+      <div class="bento bento-2x2">
+        <div class="bento-cell cell-yes wide">
+          <p class="bento-label">Factory (Shannon testnet)</p>
+          <p class="bento-value" style="font-size:0.85rem;word-break:break-all">0x7F6130B20Fc5FaD82d99BE06A25bb66dB1a9752d</p>
+        </div>
+        <div class="bento-cell">
+          <p class="bento-label">Chain</p>
+          <p class="bento-value">50312</p>
+        </div>
+        <div class="bento-cell cell-agent">
+          <p class="bento-label">Agent ID</p>
+          <p class="bento-value" style="font-size:0.75rem">12875401142070969085</p>
+        </div>
+      </div>
+      <p class="lead" style="margin-top:1rem"><code>forge test</code> + <code>scripts/local-agent-e2e.sh</code> for zero-testnet demo. <code>scripts/agent-e2e.sh</code> for live STT flow.</p>
+    </section>
+
+    <!-- 13 · What we ship -->
+    <section class="slide" data-slide="13">
+      <p class="slide-tag">What's in the repo</p>
+      <h2>Everything a demo needs — contracts, operator, and visual explainers</h2>
+      <div class="bento bento-3">
+        <div class="bento-cell cell-yes">
+          <p class="bento-label">Solidity</p>
+          <p class="bento-value">Factory + Market</p>
+          <p class="bento-note">9 Forge unit tests</p>
+        </div>
+        <div class="bento-cell cell-agent">
+          <p class="bento-label">Operator</p>
+          <p class="bento-value">CLI + MCP</p>
+          <p class="bento-note">Agent-first UX</p>
+        </div>
+        <div class="bento-cell">
+          <p class="bento-label">Optional UI</p>
+          <p class="bento-value">Next.js app</p>
+          <p class="bento-note">Liquid-glass markets browser</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 14 · CTA -->
+    <section class="slide" data-slide="14">
+      <p class="slide-tag">Next step</p>
+      <h2>Run a market in under 3 minutes — then inspect the agent receipt</h2>
+      <p class="lead">Clone the repo · fund testnet STT · tell your coding agent: <em>"Create a Verdict market and resolve it."</em></p>
+      <div class="cta-grid">
+        <a class="cta-pill primary" href="https://github.com" id="repo-link">GitHub repo</a>
+        <a class="cta-pill" href="https://somnia-testnet.blockscout.com">Blockscout</a>
+        <a class="cta-pill" href="https://agents.testnet.somnia.network">Agent receipts</a>
+        <a class="cta-pill" href="verdict-explainer.html">Interactive explainer</a>
+        <a class="cta-pill" href="https://www.encodeclub.com/programmes/agentathon">Somnia Agentathon</a>
+      </div>
+      <p class="lead" style="margin-top:2rem;font-size:0.9rem">Questions? Open the deck with <kbd style="border:1px solid var(--line);padding:0.1rem 0.35rem;border-radius:4px">F</kbd> for fullscreen · <kbd style="border:1px solid var(--line);padding:0.1rem 0.35rem;border-radius:4px">←</kbd> <kbd style="border:1px solid var(--line);padding:0.1rem 0.35rem;border-radius:4px">→</kbd> to navigate</p>
+    </section>
+
+  </main>
+
+  <div class="deck-ui">
+    <span class="slide-counter" id="counter">01 / 14</span>
+    <span class="nav-hint"><kbd>←</kbd> <kbd>→</kbd> <kbd>Space</kbd> navigate</span>
+  </div>
+
+  <script>
+    (function () {
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const total = slides.length;
+      let index = 0;
+      const progress = document.getElementById("progress");
+      const counter = document.getElementById("counter");
+
+      function pad(n) {
+        return String(n).padStart(2, "0");
+      }
+
+      function goTo(i) {
+        index = Math.max(0, Math.min(total - 1, i));
+        slides.forEach((s, j) => s.classList.toggle("active", j === index));
+        progress.style.width = ((index + 1) / total * 100) + "%";
+        counter.textContent = pad(index + 1) + " / " + pad(total);
+        history.replaceState(null, "", "#" + (index + 1));
+      }
+
+      function next() { goTo(index + 1); }
+      function prev() { goTo(index - 1); }
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+          e.preventDefault();
+          next();
+        } else if (e.key === "ArrowLeft" || e.key === "PageUp" || e.key === "Backspace") {
+          e.preventDefault();
+          prev();
+        } else if (e.key === "Home") {
+          goTo(0);
+        } else if (e.key === "End") {
+          goTo(total - 1);
+        } else if (e.key === "f" || e.key === "F") {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen?.();
+          } else {
+            document.exitFullscreen?.();
+          }
+        }
+      });
+
+      document.addEventListener("click", (e) => {
+        if (e.target.closest("a, button, input, textarea")) return;
+        const x = e.clientX / window.innerWidth;
+        if (x < 0.28) prev();
+        else next();
+      });
+
+      const hash = parseInt(location.hash.replace("#", ""), 10);
+      if (hash >= 1 && hash <= total) goTo(hash - 1);
+      else goTo(0);
+
+    })();
+  </script>
+</body>
+</html>

@@ -16,7 +16,7 @@ verdict/
 ├── test/             # Forge tests (mock Somnia platform)
 ├── script/           # Deploy.s.sol
 ├── scripts/          # demo-local.sh, demo-testnet.sh (fallback)
-├── docs/             # DEMO.md, verdict-explainer.html
+├── docs/             # DEMO.md, verdict-deck.html, verdict-explainer.html
 ├── deployments/      # shannon.json addresses
 └── app/              # Optional Next.js UI
 ```
@@ -76,6 +76,8 @@ forge script script/Deploy.s.sol:Deploy \
 ## How it works (visual)
 
 Open **[docs/verdict-explainer.html](docs/verdict-explainer.html)** in a browser — interactive diagrams, flow, payout calculator, and demo checklist. Share by hosting the file or sending the HTML directly.
+
+**Presentation deck:** **[docs/verdict-deck.html](docs/verdict-deck.html)** — 14-slide narrative (Problem → Solution → Proof → Ask). Fullscreen with `F`, navigate with arrow keys or click. Works as a leave-behind without a live presenter.
 
 ## Demo video
 

@@ -128,6 +128,18 @@ Run `forge test -vv` and `bash scripts/local-agent-e2e.sh` for full coverage wit
 - Operator: `cd operator && npm run build`
 - App: `cd app && pnpm build`
 
+### Somnia testnet deployment gotcha
+
+Somnia testnet rejects EIP-1559 (type-2) contract creation transactions. Use `--legacy` flag with `forge create`:
+
+```bash
+forge create --rpc-url "$SOMNIA_RPC_URL" --private-key "$PRIVATE_KEY" --legacy --broadcast \
+  src/VerdictFactory.sol:VerdictFactory \
+  --constructor-args 0x037Bb9C718F3f7fe5eCBDB0b600D607b52706776 12875401142070969085
+```
+
+The `forge script` deploy path (`script/Deploy.s.sol`) may fail with "Transaction Failure" (gas consumed = gas limit) unless legacy tx mode is forced.
+
 ### pnpm build warnings
 
 The `app/` directory uses pnpm. On install you may see "Ignored build scripts" warnings for `sharp` and `unrs-resolver` — these are safe to ignore and do not affect functionality.

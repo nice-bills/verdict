@@ -1,12 +1,8 @@
-/** On-chain smoke tests from operator/e2e — hide from product UI. */
-const LEGACY_QUESTION = /^does the (demo )?page contain verdict\?$/i;
-
+/** On-chain smoke tests from operator/e2e — never show in product UI. */
 export function isLegacySmokeMarket(question: string): boolean {
   const q = question.trim();
-  if (LEGACY_QUESTION.test(q)) return true;
-  if (/contain verdict/i.test(q) && /example\.com|raw\.githubusercontent/i.test(q)) {
-    return true;
-  }
+  if (/contain\s+verdict/i.test(q)) return true;
+  if (/demo page contain/i.test(q)) return true;
   return false;
 }
 

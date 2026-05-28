@@ -1,43 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { type Address } from "viem";
-import { publicClient } from "@/lib/clients";
-import { FACTORY_ADDRESS, factoryAbi, marketAbi } from "@/lib/contracts";
+import {
+  fetchMarketSummary,
+  listFactoryMarketAddresses,
+  type MarketSummary,
+} from "@/lib/market-on-chain";
 import { filterDisplayMarkets } from "@/lib/market-filters";
 import { POLL_MARKETS_MS } from "@/lib/constants";
 
-export type MarketSummary = {
-  address: Address;
-  question: string;
-  state: number;
-  outcome: number;
-  totalYesStake: bigint;
-  totalNoStake: bigint;
-  deadline: bigint;
-};
-
-async function loadSummary(address: Address): Promise<MarketSummary> {
-  const [question, state, outcome, totalYesStake, totalNoStake, deadline] =
-    await Promise.all([
-      publicClient.readContract({ address, abi: marketAbi, functionName: "question" }),
-      publicClient.readContract({ address, abi: marketAbi, functionName: "state" }),
-      publicClient.readContract({ address, abi: marketAbi, functionName: "outcome" }),
-      publicClient.readContract({ address, abi: marketAbi, functionName: "totalYesStake" }),
-      publicClient.readContract({ address, abi: marketAbi, functionName: "totalNoStake" }),
-      publicClient.readContract({ address, abi: marketAbi, functionName: "deadline" }),
-    ]);
-
-  return {
-    address,
-    question: question as string,
-    state: Number(state),
-    outcome: Number(outcome),
-    totalYesStake: totalYesStake as bigint,
-    totalNoStake: totalNoStake as bigint,
-    deadline: deadline as bigint,
-  };
-}
+export type { MarketSummary };
 
 export function useMarketSummaries() {
   const [markets, setMarkets] = useState<MarketSummary[]>([]);
@@ -45,53 +17,42 @@ export function useMarketSummaries() {
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const factory = FACTORY_ADDRESS;
-    if (!factory) {
-      setMarkets([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-    setLoading(true);
     setError(null);
-    const count = (await publicClient.readContract({
-      address: factory,
-      abi: factoryAbi,
-      functionName: "marketCount",
-    })) as bigint;
-    const n = Number(count);
-    if (n === 0) {
+    const addrs = await listFactoryMarketAddresses();
+    if (addrs.length === 0) {
       setMarkets([]);
-      setLoading(false);
-      setError(null);
       return;
     }
-    const addrs: Address[] = [];
-    for (let i = 0; i < n; i++) {
-      const addr = (await publicClient.readContract({
-        address: factory,
-        abi: factoryAbi,
-        functionName: "getMarket",
-        args: [BigInt(i)],
-      })) as Address;
-      addrs.push(addr);
-    }
-    const summaries = await Promise.all(addrs.map(loadSummary));
+    const summaries = await Promise.all(addrs.map(fetchMarketSummary));
     setMarkets(filterDisplayMarkets(summaries.reverse()));
-    setLoading(false);
   }, []);
 
   useEffect(() => {
-    refresh()
-      .then(() => setError(null))
-      .catch((e) => {
-        setError(e instanceof Error ? e.message : String(e));
-        setLoading(false);
-      });
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      try {
+        await refresh();
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void load();
+
     const id = setInterval(() => {
-      refresh().catch(() => {});
+      refresh().catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      });
     }, POLL_MARKETS_MS);
-    return () => clearInterval(id);
+
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [refresh]);
 
   return { markets, loading, error, refresh };

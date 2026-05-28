@@ -5,5 +5,8 @@
   "factory": "0x7F6130B20Fc5FaD82d99BE06A25bb66dB1a9752d",
   "rpcUrl": "https://api.infra.testnet.somnia.network",
   "explorer": "https://somnia-testnet.blockscout.com",
-  "agentsExplorer": "https://agents.testnet.somnia.network"
+  "agentsExplorer": "https://agents.testnet.somnia.network",
+  "legacyMarketAddresses": [
+    "0xcAf82F210a5aabf286d8493BE5A2B4DE4B59cF8E"
+  ]
 }

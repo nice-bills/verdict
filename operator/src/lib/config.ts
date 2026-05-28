@@ -1,8 +1,9 @@
 import { config as loadDotenv } from "dotenv";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isAddress, type Address, type Hex } from "viem";
+import type { Address, Hex } from "viem";
+import { factoryFromDeployment, loadShannonDeployment } from "./deployment.js";
 import { parseFactoryAddress } from "./validate.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -49,21 +50,18 @@ function readChainId(): number {
 
 export const CHAIN_ID = readChainId();
 
-function factoryFromDeploymentsJson(): string | undefined {
-  const path = resolve(REPO_ROOT, "deployments/shannon.json");
-  if (!existsSync(path)) return undefined;
+function shannon() {
   try {
-    const data = JSON.parse(readFileSync(path, "utf8")) as { factory?: string };
-    const f = data.factory?.trim();
-    if (f && isAddress(f, { strict: false })) return f;
+    return loadShannonDeployment();
   } catch {
-    /* ignore */
+    return null;
   }
-  return undefined;
 }
 
-export const BLOCK_EXPLORER = "https://somnia-testnet.blockscout.com";
-export const AGENT_RECEIPTS_URL = "https://agents.testnet.somnia.network";
+export const BLOCK_EXPLORER =
+  shannon()?.explorer ?? "https://somnia-testnet.blockscout.com";
+export const AGENT_RECEIPTS_URL =
+  shannon()?.agentsExplorer ?? "https://agents.testnet.somnia.network";
 
 export function getPrivateKey(): Hex {
   const pk = process.env.PRIVATE_KEY?.trim();
@@ -86,7 +84,7 @@ function readFactoryFromEnv(): string | undefined {
 }
 
 export function getFactoryAddress(): Address {
-  const addr = readFactoryFromEnv() ?? factoryFromDeploymentsJson();
+  const addr = readFactoryFromEnv() ?? factoryFromDeployment();
   if (!addr) {
     throw new Error(
       "FACTORY_ADDRESS missing — set in .env or deploy factory (see deployments/shannon.json)"

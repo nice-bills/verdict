@@ -8,6 +8,7 @@ export type ShannonDeployment = {
   rpcUrl: string;
   explorer: string;
   agentsExplorer: string;
+  legacyMarketAddresses?: string[];
 };
 
 export const SHANNON: ShannonDeployment = shannon as ShannonDeployment;

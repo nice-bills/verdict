@@ -36,7 +36,9 @@ program
       const r = await actionConfig();
       emit(
         r,
-        `RPC: ${(r.config as { rpcUrl: string }).rpcUrl}\nFactory: ${(r.config as { factoryAddress: string | null }).factoryAddress ?? "NOT SET"}\nAccount: ${r.account}`
+        r.ok
+          ? `RPC: ${r.config.rpcUrl}\nFactory: ${r.config.factoryAddress ?? "NOT SET"}\nAccount: ${r.account ?? "—"}`
+          : `Failed: ${r.error}`
       );
     } catch (e) {
       emitError(e instanceof Error ? e.message : String(e));
@@ -136,10 +138,11 @@ program
   .action(async (opts) => {
     try {
       const r = await actionStatus({ market: parseMarketAddress(opts.market) });
-      const m = r.market as Record<string, unknown>;
       emit(
         r,
-        `State: ${m.state} | Outcome: ${m.outcome}\nPool: ${m.totalPoolStt} STT (YES ${m.totalYesStakeStt} / NO ${m.totalNoStakeStt})\n${m.agentReasoning ?? ""}`
+        r.ok
+          ? `State: ${r.market.state} | Outcome: ${r.market.outcome}\nPool: ${r.market.totalPoolStt} STT (YES ${r.market.totalYesStakeStt} / NO ${r.market.totalNoStakeStt})\n${r.market.agentReasoning ?? ""}`
+          : `Failed: ${r.error}`
       );
     } catch (e) {
       emitError(e instanceof Error ? e.message : String(e));
@@ -159,13 +162,15 @@ program
         timeoutSeconds: parsePositiveInt(opts.timeout, "timeout", 180),
         pollSeconds: parsePositiveInt(opts.poll, "poll", 5),
       });
-      emit(
-        r,
-        r.resolved
-          ? `Resolved: ${(r.market as { outcome: string }).outcome}`
-          : `Timed out after ${r.waitedSeconds}s — check ${r.agentReceiptsUrl}`
-      );
-      if (!r.ok) process.exitCode = 1;
+      if (r.ok && r.resolved) {
+        emit(r, `Resolved: ${r.market.outcome}`);
+      } else {
+        emit(
+          r,
+          `Timed out after ${r.waitedSeconds}s — check ${r.agentReceiptsUrl}`
+        );
+        process.exitCode = 1;
+      }
     } catch (e) {
       emitError(e instanceof Error ? e.message : String(e));
     }

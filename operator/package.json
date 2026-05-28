@@ -9,6 +9,7 @@
     "verdict-mcp": "./dist/mcp-server.js"
   },
   "scripts": {
+    "prebuild": "bash ../scripts/sync-artifacts.sh",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "cli": "tsx src/cli.ts",

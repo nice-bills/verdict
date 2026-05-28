@@ -2,20 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { type Address } from "viem";
-import { publicClient } from "@/lib/clients";
-import { marketAbi } from "@/lib/contracts";
+import { fetchMarketSnapshot, type MarketSnapshot } from "@/lib/market-on-chain";
 import { POLL_MARKET_MS } from "@/lib/constants";
 
-export type MarketSnapshot = {
-  question: string;
-  state: number;
-  outcome: number;
-  reasoning: string;
-  totalYesStake: bigint;
-  totalNoStake: bigint;
-  deadline: bigint;
-  resolveDeposit: bigint;
-};
+export type { MarketSnapshot };
 
 export function useMarket(market: Address) {
   const [snapshot, setSnapshot] = useState<MarketSnapshot | null>(null);
@@ -23,67 +13,26 @@ export function useMarket(market: Address) {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const [
-      question,
-      state,
-      outcome,
-      reasoning,
-      totalYesStake,
-      totalNoStake,
-      deadline,
-      resolveDeposit,
-    ] = await Promise.all([
-      publicClient.readContract({ address: market, abi: marketAbi, functionName: "question" }),
-      publicClient.readContract({ address: market, abi: marketAbi, functionName: "state" }),
-      publicClient.readContract({ address: market, abi: marketAbi, functionName: "outcome" }),
-      publicClient.readContract({
-        address: market,
-        abi: marketAbi,
-        functionName: "agentReasoning",
-      }),
-      publicClient.readContract({
-        address: market,
-        abi: marketAbi,
-        functionName: "totalYesStake",
-      }),
-      publicClient.readContract({
-        address: market,
-        abi: marketAbi,
-        functionName: "totalNoStake",
-      }),
-      publicClient.readContract({ address: market, abi: marketAbi, functionName: "deadline" }),
-      publicClient.readContract({
-        address: market,
-        abi: marketAbi,
-        functionName: "requiredResolveDeposit",
-      }),
-    ]);
-
-    setSnapshot({
-      question: question as string,
-      state: Number(state),
-      outcome: Number(outcome),
-      reasoning: reasoning as string,
-      totalYesStake: totalYesStake as bigint,
-      totalNoStake: totalNoStake as bigint,
-      deadline: deadline as bigint,
-      resolveDeposit: resolveDeposit as bigint,
-    });
+    const data = await fetchMarketSnapshot(market);
+    setSnapshot(data);
   }, [market]);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    refresh()
-      .then(() => {
+
+    const load = async () => {
+      try {
+        await refresh();
         if (!cancelled) setError(null);
-      })
-      .catch((e) => {
+      } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    };
+
+    setLoading(true);
+    void load();
 
     const id = setInterval(() => {
       refresh()
@@ -91,9 +40,7 @@ export function useMarket(market: Address) {
           if (!cancelled) setError(null);
         })
         .catch((e) => {
-          if (!cancelled) {
-            setError(e instanceof Error ? e.message : String(e));
-          }
+          if (!cancelled) setError(e instanceof Error ? e.message : String(e));
         });
     }, POLL_MARKET_MS);
 

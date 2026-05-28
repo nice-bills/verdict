@@ -1,10 +1,12 @@
 import { formatEther, type Address } from "viem";
-import { BLOCK_EXPLORER } from "./config.js";
+import { AGENT_RECEIPTS_URL, BLOCK_EXPLORER } from "./config.js";
 import { getAccountAddress, getPublicClient } from "./client.js";
 import { marketAbi, OUTCOME_LABELS, STATE_LABELS } from "./contracts.js";
 import type { MarketView, OperatorStakeView } from "./types.js";
 
 const RESOLVED_STATE = 2;
+const RESOLVING_STATE = 1;
+const RESOLVE_TIMEOUT_SEC = 2 * 60 * 60;
 
 type RawMarketFields = {
   question: string;
@@ -15,29 +17,51 @@ type RawMarketFields = {
   totalNo: bigint;
   deadline: bigint;
   deposit: bigint;
+  resolveStartedAt: bigint;
+  lastResolveRequestId: bigint;
 };
 
 async function readRawMarket(market: Address): Promise<RawMarketFields> {
   const client = getPublicClient();
-  const [question, state, outcome, reasoning, totalYes, totalNo, deadline, deposit] =
-    await Promise.all([
-      client.readContract({ address: market, abi: marketAbi, functionName: "question" }),
-      client.readContract({ address: market, abi: marketAbi, functionName: "state" }),
-      client.readContract({ address: market, abi: marketAbi, functionName: "outcome" }),
-      client.readContract({
-        address: market,
-        abi: marketAbi,
-        functionName: "agentReasoning",
-      }),
-      client.readContract({ address: market, abi: marketAbi, functionName: "totalYesStake" }),
-      client.readContract({ address: market, abi: marketAbi, functionName: "totalNoStake" }),
-      client.readContract({ address: market, abi: marketAbi, functionName: "deadline" }),
-      client.readContract({
-        address: market,
-        abi: marketAbi,
-        functionName: "requiredResolveDeposit",
-      }),
-    ]);
+  const [
+    question,
+    state,
+    outcome,
+    reasoning,
+    totalYes,
+    totalNo,
+    deadline,
+    deposit,
+    resolveStartedAt,
+    lastResolveRequestId,
+  ] = await Promise.all([
+    client.readContract({ address: market, abi: marketAbi, functionName: "question" }),
+    client.readContract({ address: market, abi: marketAbi, functionName: "state" }),
+    client.readContract({ address: market, abi: marketAbi, functionName: "outcome" }),
+    client.readContract({
+      address: market,
+      abi: marketAbi,
+      functionName: "agentReasoning",
+    }),
+    client.readContract({ address: market, abi: marketAbi, functionName: "totalYesStake" }),
+    client.readContract({ address: market, abi: marketAbi, functionName: "totalNoStake" }),
+    client.readContract({ address: market, abi: marketAbi, functionName: "deadline" }),
+    client.readContract({
+      address: market,
+      abi: marketAbi,
+      functionName: "requiredResolveDeposit",
+    }),
+    client.readContract({
+      address: market,
+      abi: marketAbi,
+      functionName: "resolveStartedAt",
+    }),
+    client.readContract({
+      address: market,
+      abi: marketAbi,
+      functionName: "lastResolveRequestId",
+    }),
+  ]);
 
   return {
     question: question as string,
@@ -48,7 +72,14 @@ async function readRawMarket(market: Address): Promise<RawMarketFields> {
     totalNo: totalNo as bigint,
     deadline: deadline as bigint,
     deposit: deposit as bigint,
+    resolveStartedAt: resolveStartedAt as bigint,
+    lastResolveRequestId: lastResolveRequestId as bigint,
   };
+}
+
+function agentReceiptUrl(requestId: bigint): string | null {
+  if (requestId === 0n) return null;
+  return `${AGENT_RECEIPTS_URL}/request/${requestId.toString()}`;
 }
 
 async function readOperatorStake(
@@ -89,11 +120,21 @@ async function readOperatorStake(
   };
 }
 
-export function formatMarketView(market: Address, raw: RawMarketFields, operator?: OperatorStakeView): MarketView {
+export function formatMarketView(
+  market: Address,
+  raw: RawMarketFields,
+  operator?: OperatorStakeView
+): MarketView {
   const stateNum = Number(raw.state);
   const outcomeNum = Number(raw.outcome);
   const deadlineNum = Number(raw.deadline);
   const now = Math.floor(Date.now() / 1000);
+  const resolveStartedNum = Number(raw.resolveStartedAt);
+  const requestId = raw.lastResolveRequestId;
+  const canExpire =
+    stateNum === RESOLVING_STATE &&
+    resolveStartedNum > 0 &&
+    now >= resolveStartedNum + RESOLVE_TIMEOUT_SEC;
 
   return {
     address: market,
@@ -111,6 +152,10 @@ export function formatMarketView(market: Address, raw: RawMarketFields, operator
     pastDeadline: now >= deadlineNum,
     requiredResolveDepositStt: formatEther(raw.deposit),
     explorer: `${BLOCK_EXPLORER}/address/${market}`,
+    resolveStartedAt: resolveStartedNum > 0 ? resolveStartedNum : null,
+    lastResolveRequestId: requestId > 0n ? requestId.toString() : null,
+    agentReceiptUrl: agentReceiptUrl(requestId),
+    canExpireResolution: canExpire,
     ...(operator ? { operator } : {}),
   };
 }

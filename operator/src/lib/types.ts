@@ -20,6 +20,7 @@ export type WaitResult =
       waitedSeconds: number;
       market: MarketView;
       agentReceiptsUrl: string;
+      canExpireResolution?: boolean;
     };
 
 export type TxLinks = { txHash: Hash; explorerTx: string };
@@ -48,6 +49,10 @@ export type MarketView = {
   pastDeadline: boolean;
   requiredResolveDepositStt: string;
   explorer: string;
+  resolveStartedAt: number | null;
+  lastResolveRequestId: string | null;
+  agentReceiptUrl: string | null;
+  canExpireResolution: boolean;
   operator?: OperatorStakeView;
 };
 
@@ -59,4 +64,10 @@ export type ConfigView = {
   privateKeyConfigured: boolean;
   blockExplorer: string;
   agentReceiptsUrl: string;
+};
+
+export type DoctorCheck = {
+  name: string;
+  ok: boolean;
+  detail: string;
 };

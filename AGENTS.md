@@ -70,6 +70,8 @@ Config example — `.cursor/mcp.json` in repo root or user config:
 | `verdict_wait_resolved` | Poll until Resolved |
 | `verdict_claim` | Withdraw payout |
 | `verdict_list_markets` | List factory markets |
+| `verdict_doctor` | Diagnose RPC, chain id, factory, wallet |
+| `verdict_expire_resolution` | Unstick Resolving → INVALID after 2h timeout |
 
 ## Typical agent workflow
 

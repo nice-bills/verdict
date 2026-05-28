@@ -95,12 +95,19 @@ export function getFactoryAddress(): Address {
 
 export function getConfigStatus() {
   const pk = process.env.PRIVATE_KEY;
-  const factory = readFactoryFromEnv();
+  let factory: string | null = readFactoryFromEnv() ?? null;
+  if (!factory) {
+    try {
+      factory = factoryFromDeployment() ?? null;
+    } catch {
+      factory = null;
+    }
+  }
   return {
     repoRoot: REPO_ROOT,
     rpcUrl: RPC_URL,
     chainId: CHAIN_ID,
-    factoryAddress: factory ?? null,
+    factoryAddress: factory,
     privateKeyConfigured: Boolean(pk && pk !== "0x"),
     blockExplorer: BLOCK_EXPLORER,
     agentReceiptsUrl: AGENT_RECEIPTS_URL,

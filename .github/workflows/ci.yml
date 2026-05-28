@@ -35,6 +35,12 @@ jobs:
         working-directory: operator
       - run: npm run build
         working-directory: operator
+      - run: bash scripts/local-agent-e2e.sh
+      - name: MCP local E2E
+        run: node operator/scripts/mcp-local-e2e.mjs
+        env:
+          # pragma: allowlist secret — Anvil account #0 (public Foundry fixture)
+          ANVIL_DEV_PRIVATE_KEY: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" # pragma: allowlist secret
 
   app:
     runs-on: ubuntu-latest

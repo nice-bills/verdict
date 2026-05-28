@@ -16,7 +16,11 @@ import { listFactoryMarketAddresses } from "./factory-read.js";
 import { readMarketView } from "./market-read.js";
 import { finishWriteAction, resolveNote, runMarketWrite, txLinks } from "./tx-actions.js";
 import type { ActionResult, ConfigView, MarketView, WaitResult } from "./types.js";
+import { actionDoctor } from "./doctor.js";
+import { validateCreateMarketInput } from "./validate-market.js";
 import { parseAmountStt } from "./validate.js";
+
+export { actionDoctor };
 
 const RESOLVED_STATE = 2;
 
@@ -56,6 +60,16 @@ export async function actionCreateMarket(params: {
     const deadline =
       params.deadlineUnix ??
       Math.floor(Date.now() / 1000) + (params.deadlineMinutes ?? 60) * 60;
+
+    const validationError = validateCreateMarketInput({
+      question: params.question,
+      sourceUrl: params.sourceUrl,
+      resolvePrompt: params.resolvePrompt,
+      deadlineUnix: deadline,
+    });
+    if (validationError) {
+      return { ok: false, error: validationError };
+    }
 
     const wallet = getWalletClient();
     const factory = getFactoryAddress();
@@ -201,15 +215,34 @@ export async function actionWait(params: {
   }
 
   const market = await readMarketView(params.market);
+  const expireHint = market.canExpireResolution
+    ? " — call verdict expire-resolution or verdict_expire_resolution"
+    : "";
   return {
     ok: false,
     resolved: false,
     timedOut: true,
-    error: `Timed out after ${timeout}s waiting for resolution`,
+    error: `Timed out after ${timeout}s waiting for resolution${expireHint}`,
     waitedSeconds: timeout,
     market,
     agentReceiptsUrl: AGENT_RECEIPTS_URL,
+    canExpireResolution: market.canExpireResolution,
   };
+}
+
+export async function actionExpireResolution(params: { market: Address }): Promise<
+  ActionResult<{ market?: MarketView; txHash: string; explorerTx: string }>
+> {
+  return runMarketWrite(
+    () =>
+      getWalletClient().writeContract({
+        address: params.market,
+        abi: marketAbi,
+        functionName: "expireResolution",
+      }),
+    params.market,
+    {}
+  );
 }
 
 export async function actionListMarkets(): Promise<

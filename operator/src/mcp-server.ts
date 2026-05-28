@@ -7,6 +7,8 @@ import {
   actionClaim,
   actionConfig,
   actionCreateMarket,
+  actionDoctor,
+  actionExpireResolution,
   actionListMarkets,
   actionResolve,
   actionStake,
@@ -46,6 +48,13 @@ server.tool(
   "Check Verdict operator env: RPC, factory address, whether PRIVATE_KEY is set. Run before other tools.",
   {},
   async () => safeTool(() => actionConfig())
+);
+
+server.tool(
+  "verdict_doctor",
+  "Diagnose RPC connectivity, chain id, factory bytecode, market count, and wallet balance.",
+  {},
+  async () => safeTool(() => actionDoctor())
 );
 
 server.tool(
@@ -147,6 +156,15 @@ server.tool(
     market: addressSchema.describe("VerdictMarket contract address"),
   },
   async (args) => safeTool(() => actionClaim({ market: args.market as Address }))
+);
+
+server.tool(
+  "verdict_expire_resolution",
+  "If market is stuck Resolving for 2+ hours, finalize as INVALID so stakers can claim refunds.",
+  {
+    market: addressSchema.describe("VerdictMarket contract address"),
+  },
+  async (args) => safeTool(() => actionExpireResolution({ market: args.market as Address }))
 );
 
 async function main() {

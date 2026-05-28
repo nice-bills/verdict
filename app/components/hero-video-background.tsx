@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-export const HERO_VIDEO_SRC =
+const HERO_VIDEO_SRC =
   "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_115001_bcdaa3b4-03de-47e7-ad63-ae3e392c32d4.mp4";
 
 const FADE_MS = 500;
@@ -90,7 +90,7 @@ export function HeroVideoBackground() {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-0 min-h-screen overflow-hidden bg-black" aria-hidden>
+    <div className="fixed inset-0 z-0 min-h-screen overflow-hidden bg-gray-950" aria-hidden>
       <video
         ref={videoRef}
         className="absolute inset-0 h-full w-full object-cover translate-y-[17%]"
@@ -99,6 +99,8 @@ export function HeroVideoBackground() {
         muted
         playsInline
         preload="auto"
+        aria-label="Decorative background video"
+        tabIndex={-1}
       />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/85" />
     </div>

@@ -22,7 +22,7 @@ export function LiquidNav({ account, onConnect }: LiquidNavProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="relative z-20 px-6 py-6">
+    <header className="relative z-20 p-6">
       <div className="liquid-glass mx-auto flex max-w-5xl items-center justify-between rounded-full px-6 py-3">
         <div className="flex items-center gap-4 md:gap-8">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-white">

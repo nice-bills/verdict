@@ -1,20 +1,19 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { isAddress, parseEther, type Address, type Hash } from "viem";
-import { somniaTestnet } from "@/lib/chain";
-import { marketAbi, OUTCOME_LABELS, STATE_LABELS } from "@/lib/contracts";
-import { publicClient } from "@/lib/clients";
+import { isAddress, type Address } from "viem";
+import { OUTCOME_LABELS, STATE_LABELS } from "@/lib/contracts";
 import { useWallet } from "@/hooks/useWallet";
 import { useMarket } from "@/hooks/useMarket";
+import { useMarketTx } from "@/hooks/useMarketTx";
 import { VerdictShell } from "@/components/verdict-shell";
 import { LiquidNav } from "@/components/liquid-nav";
 import { WalletBanner } from "@/components/wallet-banner";
 import { MarketTradePanel } from "@/components/market-trade-panel";
 import { isLegacySmokeMarket } from "@/lib/market-filters";
-import { AGENTS_URL, MIN_STAKE_STT, POLL_MARKET_MS, blockscoutTxUrl } from "@/lib/constants";
+import { AGENTS_URL, blockscoutTxUrl } from "@/lib/constants";
 
 function formatDeadline(ts: bigint) {
   if (ts <= BigInt(0)) return "—";
@@ -30,7 +29,7 @@ export function MarketPageClient() {
     try {
       await connect();
     } catch {
-      /* surfaced in child if needed */
+      /* invalid page uses banner only */
     }
   }
 
@@ -54,83 +53,33 @@ export function MarketPageClient() {
 }
 
 function MarketPageInner({ market }: { market: Address }) {
-  const { account, connect, getWalletClient } = useWallet();
+  const { account, connect } = useWallet();
   const { snapshot, error: loadError, loading, refresh, setError } = useMarket(market);
-  const [busy, setBusy] = useState(false);
-  const [lastTx, setLastTx] = useState<Hash | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [stakeAmount, setStakeAmount] = useState("0.01");
+  const tx = useMarketTx({
+    market,
+    snapshot,
+    onSuccess: refresh,
+  });
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setNow(Math.floor(Date.now() / 1000));
-      if (snapshot?.state === 1) refresh().catch(() => {});
-    }, POLL_MARKET_MS);
+    const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
     return () => clearInterval(id);
-  }, [refresh, snapshot?.state]);
-
-  const error = actionError ?? loadError;
+  }, []);
 
   async function handleConnect() {
-    setActionError(null);
+    tx.clearError();
+    setError(null);
     try {
       await connect();
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      tx.clearError();
+      setError(msg);
     }
   }
 
-  async function write(
-    fn: "stake" | "resolve" | "claim",
-    args?: { isYes?: boolean }
-  ) {
-    if (!account || !snapshot) return;
-    setBusy(true);
-    setActionError(null);
-    try {
-      const wallet = getWalletClient();
-      let hash: Hash;
-      const base = { chain: somniaTestnet, account } as const;
-      if (fn === "stake") {
-        const amount = parseEther(stakeAmount || MIN_STAKE_STT);
-        if (amount < parseEther(MIN_STAKE_STT)) {
-          throw new Error(`Minimum stake is ${MIN_STAKE_STT} STT`);
-        }
-        hash = await wallet.writeContract({
-          ...base,
-          address: market,
-          abi: marketAbi,
-          functionName: "stake",
-          args: [args?.isYes ?? true],
-          value: amount,
-        });
-      } else if (fn === "resolve") {
-        hash = await wallet.writeContract({
-          ...base,
-          address: market,
-          abi: marketAbi,
-          functionName: "resolve",
-          value: snapshot.resolveDeposit,
-        });
-      } else {
-        hash = await wallet.writeContract({
-          ...base,
-          address: market,
-          abi: marketAbi,
-          functionName: "claim",
-        });
-      }
-      setLastTx(hash);
-      await publicClient.waitForTransactionReceipt({ hash });
-      await refresh();
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : String(e));
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const error = tx.error ?? loadError;
 
   const pastDeadline =
     snapshot &&
@@ -170,7 +119,7 @@ function MarketPageInner({ market }: { market: Address }) {
               <h1 className="font-instrument mt-4 text-3xl leading-tight text-white md:text-4xl">
                 {snapshot.question}
               </h1>
-              {isLegacySmokeMarket(snapshot.question) && (
+              {isLegacySmokeMarket({ question: snapshot.question, address: market }) && (
                 <p className="mt-3 text-sm text-amber-200/90">
                   Legacy test market — hidden from the home list. Create a new one for your demo.
                 </p>
@@ -182,14 +131,14 @@ function MarketPageInner({ market }: { market: Address }) {
               <MarketTradePanel
                 snapshot={snapshot}
                 account={account}
-                busy={busy}
-                stakeAmount={stakeAmount}
-                onStakeAmount={setStakeAmount}
+                busy={tx.busy}
+                stakeAmount={tx.stakeAmount}
+                onStakeAmount={tx.setStakeAmount}
                 pastDeadline={Boolean(pastDeadline)}
                 secondsLeft={secondsLeft}
-                onStake={(isYes) => write("stake", { isYes })}
-                onResolve={() => write("resolve")}
-                onClaim={() => write("claim")}
+                onStake={tx.stake}
+                onResolve={tx.resolve}
+                onClaim={tx.claim}
                 formatDeadline={formatDeadline}
               />
             </div>
@@ -217,10 +166,10 @@ function MarketPageInner({ market }: { market: Address }) {
           </>
         )}
 
-        {lastTx && (
+        {tx.lastTx && (
           <a
             className="mt-6 block text-center text-xs text-white/60 underline"
-            href={blockscoutTxUrl(lastTx)}
+            href={blockscoutTxUrl(tx.lastTx)}
             target="_blank"
             rel="noreferrer"
           >

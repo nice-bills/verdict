@@ -34,8 +34,8 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: app/pnpm-lock.yaml
 
-      - name: Sync deployment config
-        run: cp deployments/shannon.json app/config/shannon.json
+      - name: Sync artifacts
+        run: bash scripts/sync-artifacts.sh
 
       - name: Build static site
         working-directory: app

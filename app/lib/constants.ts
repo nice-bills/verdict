@@ -13,7 +13,3 @@ export const POLL_MARKETS_MS = 8_000;
 export function blockscoutTxUrl(hash: string) {
   return `${BLOCKSCOUT_URL}/tx/${hash}`;
 }
-
-export function blockscoutAddressUrl(address: string) {
-  return `${BLOCKSCOUT_URL}/address/${address}`;
-}

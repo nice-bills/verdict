@@ -20,11 +20,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: operator/package-lock.json
+      - run: bash scripts/sync-artifacts.sh
       - run: npm ci
         working-directory: operator
       - run: npm run typecheck

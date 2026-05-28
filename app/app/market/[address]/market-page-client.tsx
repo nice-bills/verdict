@@ -16,7 +16,7 @@ import { isLegacySmokeMarket } from "@/lib/market-filters";
 import { AGENTS_URL, blockscoutTxUrl } from "@/lib/constants";
 
 function formatDeadline(ts: bigint) {
-  if (ts <= BigInt(0)) return "—";
+  if (ts <= BigInt(0)) return "n/a";
   return new Date(Number(ts) * 1000).toLocaleString();
 }
 
@@ -121,7 +121,7 @@ function MarketPageInner({ market }: { market: Address }) {
               </h1>
               {isLegacySmokeMarket({ question: snapshot.question, address: market }) && (
                 <p className="mt-3 text-sm text-amber-200/90">
-                  Legacy test market — hidden from the home list. Create a new one for your demo.
+                  Legacy test market (hidden from the home list). Create a new one for your demo.
                 </p>
               )}
               <p className="mt-4 break-all text-xs text-white/40">{market}</p>
@@ -160,7 +160,7 @@ function MarketPageInner({ market }: { market: Address }) {
 
             {snapshot.state === 1 && (
               <p className="mt-4 text-center text-sm text-white/70">
-                Resolving on Somnia — usually 30–120 seconds.
+                Resolving on Somnia, usually 30–120 seconds.
               </p>
             )}
           </>

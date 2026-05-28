@@ -5,7 +5,7 @@ const MARKET_CREATED_TOPIC = keccak256(
   toBytes("MarketCreated(uint256,address,address)")
 );
 
-export function marketAddressFromReceipt(receipt: TransactionReceipt): `0x${string}` | null {
+function marketAddressFromReceipt(receipt: TransactionReceipt): `0x${string}` | null {
   for (const log of receipt.logs) {
     if (log.topics[0]?.toLowerCase() !== MARKET_CREATED_TOPIC.toLowerCase()) continue;
     const marketTopic = log.topics[2];

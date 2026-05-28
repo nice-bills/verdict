@@ -5,6 +5,8 @@ import {
   actionClaim,
   actionConfig,
   actionCreateMarket,
+  actionDoctor,
+  actionExpireResolution,
   actionListMarkets,
   actionResolve,
   actionStake,
@@ -26,6 +28,24 @@ program
   .option("--json", "Force JSON output")
   .hook("preAction", () => {
     if (program.opts().json) process.env.VERDICT_JSON = "1";
+  });
+
+program
+  .command("doctor")
+  .description("Diagnose RPC, chain id, factory, and wallet readiness")
+  .action(async () => {
+    try {
+      const r = await actionDoctor();
+      emit(
+        r,
+        r.ok
+          ? r.checks.map((c) => `${c.ok ? "✓" : "✗"} ${c.name}: ${c.detail}`).join("\n")
+          : `Failed: ${r.error}`
+      );
+      if (r.ok && !r.ready) process.exitCode = 1;
+    } catch (e) {
+      emitError(e instanceof Error ? e.message : String(e));
+    }
   });
 
 program
@@ -100,6 +120,20 @@ program
         amountStt: opts.amount,
       });
       emit(r, r.ok ? `Staked ${r.side} ${r.amountStt} STT` : `Failed: ${r.error}`);
+    } catch (e) {
+      emitError(e instanceof Error ? e.message : String(e));
+    }
+  });
+
+program
+  .command("expire-resolution")
+  .alias("expire")
+  .description("Finalize as INVALID if stuck in Resolving past RESOLVE_TIMEOUT (2h)")
+  .requiredOption("--market <address>", "VerdictMarket address")
+  .action(async (opts) => {
+    try {
+      const r = await actionExpireResolution({ market: parseMarketAddress(opts.market) });
+      emit(r, r.ok ? `Resolution expired. Tx: ${r.explorerTx}` : `Failed: ${r.error}`);
     } catch (e) {
       emitError(e instanceof Error ? e.message : String(e));
     }

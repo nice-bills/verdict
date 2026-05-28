@@ -22,6 +22,8 @@ contract VerdictMarket is IAgentRequesterHandler {
 
     uint256 public constant MIN_STAKE = 0.001 ether;
     uint256 public constant SUBCOMMITTEE_SIZE = 3;
+    /// @dev Max time in Resolving before anyone may call expireResolution() (refund stakes).
+    uint256 public constant RESOLVE_TIMEOUT = 2 hours;
     /// @dev Per-agent price for LLM Parse Website (see Somnia gas-fees docs).
     uint256 public constant PARSE_COST_PER_AGENT = 0.1 ether;
 
@@ -38,6 +40,8 @@ contract VerdictMarket is IAgentRequesterHandler {
     MarketState public state;
     Outcome public outcome;
     string public agentReasoning;
+    uint256 public resolveStartedAt;
+    uint256 public lastResolveRequestId;
 
     uint256 public totalYesStake;
     uint256 public totalNoStake;
@@ -55,6 +59,7 @@ contract VerdictMarket is IAgentRequesterHandler {
     event Staked(address indexed user, bool indexed isYes, uint256 amount);
     event ResolveRequested(uint256 indexed requestId);
     event MarketResolved(Outcome indexed outcome, string reasoning);
+    event ResolutionExpired(uint256 indexed requestId);
     event Payout(address indexed user, uint256 amount);
 
     error NotFactory();
@@ -70,6 +75,7 @@ contract VerdictMarket is IAgentRequesterHandler {
     error AlreadyClaimed();
     error NothingToClaim();
     error Underfunded();
+    error ResolveNotTimedOut();
 
     modifier onlyFactory() {
         if (msg.sender != factory) revert NotFactory();
@@ -117,6 +123,7 @@ contract VerdictMarket is IAgentRequesterHandler {
         if (block.timestamp < deadline) revert BeforeDeadline();
 
         state = MarketState.Resolving;
+        resolveStartedAt = block.timestamp;
 
         string[] memory options = new string[](3);
         options[0] = "YES";
@@ -145,14 +152,40 @@ contract VerdictMarket is IAgentRequesterHandler {
         uint256 deposit = requiredResolveDeposit();
         if (msg.value < deposit) revert Underfunded();
 
-        requestId = platform.createRequest{value: msg.value}(
+        requestId = platform.createRequest{value: deposit}(
             parseAgentId,
             address(this),
             this.handleResponse.selector,
             payload
         );
+        lastResolveRequestId = requestId;
         pendingRequests[requestId] = true;
         emit ResolveRequested(requestId);
+
+        uint256 surplus = msg.value - deposit;
+        if (surplus > 0) {
+            (bool refundOk,) = msg.sender.call{value: surplus}("");
+            if (!refundOk) revert TransferFailed();
+        }
+    }
+
+    /// @notice If Somnia never callbacks, finalize as INVALID after RESOLVE_TIMEOUT (all stakes refundable).
+    function expireResolution() external {
+        if (state != MarketState.Resolving) revert NotResolving();
+        if (block.timestamp < resolveStartedAt + RESOLVE_TIMEOUT) revert ResolveNotTimedOut();
+
+        uint256 requestId = lastResolveRequestId;
+        if (requestId != 0) {
+            delete pendingRequests[requestId];
+        }
+
+        poolAtResolution = totalYesStake + totalNoStake;
+        outcome = Outcome.Invalid;
+        agentReasoning = "Resolution timed out waiting for Somnia agent callback";
+        winningStakeTotal = 0;
+        state = MarketState.Resolved;
+        emit ResolutionExpired(requestId);
+        emit MarketResolved(outcome, agentReasoning);
     }
 
     function handleResponse(

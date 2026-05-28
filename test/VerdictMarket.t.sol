@@ -151,4 +151,55 @@ contract VerdictMarketTest is Test {
         assertEq(factory.marketCount(), 1);
         assertEq(factory.getMarket(0), address(market));
     }
+
+    function test_resolve_refunds_surplus_deposit() public {
+        vm.prank(alice);
+        market.stake{value: 0.01 ether}(true);
+
+        vm.warp(block.timestamp + 1 days + 1);
+        uint256 deposit = market.requiredResolveDeposit();
+        uint256 surplus = 0.05 ether;
+        uint256 before = alice.balance;
+        vm.prank(alice);
+
+        market.resolve{value: deposit + surplus}();
+
+        assertEq(alice.balance, before - deposit);
+    }
+
+    function test_expire_resolution_after_timeout() public {
+        vm.prank(alice);
+        market.stake{value: 0.01 ether}(true);
+        vm.prank(bob);
+        market.stake{value: 0.02 ether}(false);
+
+        vm.warp(block.timestamp + 1 days + 1);
+        uint256 deposit = market.requiredResolveDeposit();
+        market.resolve{value: deposit}();
+
+        vm.warp(block.timestamp + market.RESOLVE_TIMEOUT() + 1);
+        market.expireResolution();
+
+        assertEq(uint256(market.state()), uint256(VerdictMarket.MarketState.Resolved));
+        assertEq(uint256(market.outcome()), uint256(VerdictMarket.Outcome.Invalid));
+
+        uint256 aliceBefore = alice.balance;
+        vm.prank(alice);
+        market.claim();
+        assertEq(alice.balance, aliceBefore + 0.01 ether);
+
+        uint256 bobBefore = bob.balance;
+        vm.prank(bob);
+        market.claim();
+        assertEq(bob.balance, bobBefore + 0.02 ether);
+    }
+
+    function test_cannot_expire_before_timeout() public {
+        vm.warp(block.timestamp + 1 days + 1);
+        uint256 deposit = market.requiredResolveDeposit();
+        market.resolve{value: deposit}();
+
+        vm.expectRevert(VerdictMarket.ResolveNotTimedOut.selector);
+        market.expireResolution();
+    }
 }

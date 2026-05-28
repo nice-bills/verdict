@@ -43,7 +43,9 @@ export MOCK_PLATFORM="$PLATFORM"
 echo "PLATFORM=$PLATFORM FACTORY=$FACTORY"
 
 echo "==> create"
-CREATE=$(run_cli create -q "Local VERDICT test" -u "https://example.com" -r "Return YES" -m 0 -d "$(($(date +%s) + 30))")
+BLOCK_TS=$(cast block latest --rpc-url "$RPC" -f timestamp)
+DEADLINE=$((BLOCK_TS + 600))
+CREATE=$(run_cli create -q "Local VERDICT test" -u "https://example.com" -r "Return YES or NO or INVALID." -d "$DEADLINE")
 MARKET=$(echo "$CREATE" | jq -r '.market')
 echo "MARKET=$MARKET"
 
@@ -51,11 +53,12 @@ echo "==> stake YES"
 run_cli stake --market "$MARKET" --yes --amount 0.01
 
 echo "==> time warp + resolve"
-cast rpc evm_increaseTime 60 --rpc-url "$RPC" >/dev/null
+NOW_TS=$(cast block latest --rpc-url "$RPC" -f timestamp)
+WARP_SEC=$((DEADLINE - NOW_TS + 5))
+cast rpc evm_increaseTime "$WARP_SEC" --rpc-url "$RPC" >/dev/null
 cast rpc evm_mine --rpc-url "$RPC" >/dev/null
 
 RESOLVE=$(run_cli resolve --market "$MARKET")
-REQ=$(echo "$RESOLVE" | jq -r '.market.stateRaw // empty')
 echo "$RESOLVE"
 
 echo "==> mock deliverResponse(1)"
